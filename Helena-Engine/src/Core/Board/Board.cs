@@ -1,6 +1,7 @@
 namespace H.Core;
 
 using System;
+using H.Program;
 
 public class Board
 {
@@ -13,13 +14,18 @@ public class Board
     public Board()
     {
         Initialize();
-
-        // PrintLargeBoard();
     }
 
     void Initialize()
     {
         ClearBoard();
+        WarmUp();
+    }
+
+    void WarmUp()
+    {
+        // Just call some functions
+        // Not implemented
     }
 
     // Clear the entire board.. so that it is absolutely empty
@@ -187,7 +193,7 @@ public class Board
     {
         if (StateStack.Count == 0)
         {
-            System.Console.WriteLine($"Error: Cannot unmake the move {move.Notation} since the State Stack is empty.");
+            Logger.LogLine($"Error: Cannot unmake the move {move.Notation} since the State Stack is empty.");
             return;
         }
 
@@ -318,17 +324,17 @@ public class Board
     {
         for (int rank = 7; rank >= 0; rank--)
         {
-            System.Console.WriteLine("  +---+---+---+---+---+---+---+---+");
-            System.Console.Write($"{rank + 1} |");
+            Logger.LogLine("  +---+---+---+---+---+---+---+---+");
+            Logger.Log($"{rank + 1} |");
             for (int file = 0; file < 8; file++)
             {
-                System.Console.Write($" {PieceHelper.ToChar(Position[SquareHelper.GetSquare(file, rank)])} |");
+                Logger.Log($" {PieceHelper.ToChar(Position[SquareHelper.GetSquare(file, rank)])} |");
             }
-            System.Console.Write('\n');
+            Logger.Log('\n');
         }
 
-        System.Console.WriteLine("  +---+---+---+---+---+---+---+---+");
-        System.Console.WriteLine("    A   B   C   D   E   F   G   H ");
+        Logger.LogLine("  +---+---+---+---+---+---+---+---+");
+        Logger.LogLine("    A   B   C   D   E   F   G   H ");
         State.Print();
     }
 
@@ -359,7 +365,7 @@ public struct BoardState
 
     public void Print()
     {
-        System.Console.WriteLine($"Side: {(SideToMove ? "White" : "Black")} | EP: {SquareHelper.ToString(EnPassantSquare)} | Castling: {(NoCastling ? "-" : ((WKCastling ? "K" : "") + (WQCastling ? "Q" : "") + (BKCastling ? "k" : "") + (BQCastling ? "q" : "")))} | HalfClock: {HalfmoveClock}");
+        Logger.LogLine($"Side: {(SideToMove ? "White" : "Black")} | EP: {SquareHelper.ToString(EnPassantSquare)} | Castling: {(NoCastling ? "-" : ((WKCastling ? "K" : "") + (WQCastling ? "Q" : "") + (BKCastling ? "k" : "") + (BQCastling ? "q" : "")))} | HalfClock: {HalfmoveClock}");
     }
 
     // Castling rights expressions & constants

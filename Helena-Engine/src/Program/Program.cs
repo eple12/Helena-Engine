@@ -9,13 +9,13 @@ public static class Program
 
     public static int Main(string[] args)
     {
-        Console.WriteLine(LOGO);
-        Console.WriteLine($"{NAME} {VERSION}");
+        Logger.LogLine(LOGO);
+        Logger.LogLine($"{NAME} {VERSION}");
 
-        Console.WriteLine();
-        Console.WriteLine("Initializing...");
+        Logger.LogLine();
+        Logger.LogLine("Initializing...");
         Initialize();
-        Console.WriteLine("Done.");
+        Logger.LogLine("Done.");
 
         while (true)
         {
@@ -27,7 +27,7 @@ public static class Program
             }
         }
 
-        Console.WriteLine("Quitting...");
+        Logger.LogLine("Quitting...");
         
         return 0;
     }

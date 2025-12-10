@@ -86,7 +86,7 @@ public static class UCI
             string[] moveList = subcommands[(moveCmdIndex + 1)..];
             foreach (string t in moveList)
             {
-                System.Console.WriteLine(t);
+                Logger.LogLine(t);
             }
         }
     }
