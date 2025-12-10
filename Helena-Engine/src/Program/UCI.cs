@@ -22,6 +22,8 @@ public readonly struct ProtocolCommand
 
 public static class UCI
 {
+    static Board MainBoard = Main.MainBoard;
+
     public static ProtocolResult ProcessCommand(string command)
     {
         string[] commandParts = command.Split(' ');
@@ -92,6 +94,18 @@ public static class UCI
     static void Test()
     {
         // Board board = new Board();
-        System.Console.WriteLine("asdfasdfasdfasdfasdddddddddddddddddddddddddd");
+        // System.Console.WriteLine("asdfasdfasdfasdfasdddddddddddddddddddddddddd");
+        Move t1 = new(SquareHelper.E2, SquareHelper.E4, MoveFlag.PawnTwo);
+        Move t2 = new(SquareHelper.E7, SquareHelper.E5, MoveFlag.PawnTwo);
+        Move t3 = new(SquareHelper.G1, SquareHelper.F3);
+        Move t4 = new(SquareHelper.B8, SquareHelper.C6);
+        Move t5 = new(SquareHelper.F3, SquareHelper.E5, MoveFlag.Capture);
+
+        MainBoard.MakeMove(t1);
+        MainBoard.MakeMove(t2);
+        MainBoard.MakeMove(t3);
+        MainBoard.MakeMove(t4);
+        MainBoard.MakeMove(t5);
+        MainBoard.UnmakeMove(t5);
     }
 }

@@ -22,7 +22,7 @@ public static class SquareHelper
         {
             return "NN";
         }
-        return $"{'A' + GetFile(square)}{'1' + GetRank(square)}";
+        return $"{(char)('A' + GetFile(square))}{(char)('1' + GetRank(square))}";
     }
     public static string ToString(int file, int rank)
     {
@@ -35,7 +35,7 @@ public static class SquareHelper
 
     public const Square INVALID_SQUARE = 64;
 
-    // region Square representations: A1~H8
+// region Square representations: A1~H8
     public const Square A1 = 0;
     public const Square B1 = 1;
     public const Square C1 = 2;
@@ -107,6 +107,6 @@ public static class SquareHelper
     public const Square F8 = 61;
     public const Square G8 = 62;
     public const Square H8 = 63;
-    // endregion
+// endregion
 
 }
