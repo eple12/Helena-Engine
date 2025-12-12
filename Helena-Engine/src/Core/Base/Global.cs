@@ -13,3 +13,9 @@ global using PieceType = byte;
 // Color:
 // 0: WHITE / 1: BLACK
 global using Color = byte;
+
+// Bitboard represents a 64 bit board
+global using Bitboard = ulong;
+
+// Just for simplicity
+global using MoveList = System.Span<H.Core.Move>;
