@@ -11,8 +11,21 @@ public class Board
     // Stacking board data for unmaking moves will be implemented soon
     private Stack<BoardState> StateStack = new(20);
 
+    // [Color]
+    public Square[] KingSquares = new Square[2];
+
+    // Bitboards
+    // [Color]
+    public BitboardSet[] BitboardSets = new BitboardSet[2];
+
+    public MoveGen MoveGenerator;
+    // Move[] interfaceMoves;
+
     public Board()
     {
+        MoveGenerator = new MoveGen(this);
+        // interfaceMoves = new Move[Constants.MAX_MOVES];
+
         Initialize();
     }
 
@@ -45,6 +58,12 @@ public class Board
         }
 
         StateStack = new();
+
+        KingSquares[0] = SquareHelper.INVALID_SQUARE;
+        KingSquares[1] = SquareHelper.INVALID_SQUARE;
+
+        BitboardSets[0] = new BitboardSet();
+        BitboardSets[1] = new BitboardSet();
     }
 
 // region Move Making
@@ -53,6 +72,9 @@ public class Board
     // (DO NOT CREATE A NEW MOVE OBJECT FROM START/TARGET SQUARE)
     public void MakeMove(Move move)
     {
+        Color movingColor = PieceHelper.GetColor(State.SideToMove);
+        Color enemyColor = PieceHelper.GetColor(!State.SideToMove);
+
         Square start = move.Start;
         Square target = move.Target;
 
@@ -70,8 +92,22 @@ public class Board
 
         Position[target] = movingPiece;
         Position[start] = PieceHelper.NONE;
-
+    
         ushort flag = move.Flag;
+
+        // Update King Square
+        if (movingPieceType == PieceHelper.KING)
+        {
+            KingSquares[movingColor] = target;
+        }
+
+        // Basic bitboard update
+        BitboardSets[movingColor].ToggleSquare(movingPieceType, start, target);
+        
+        if (targetedPieceType != PieceHelper.NONE)
+        {
+            BitboardSets[enemyColor].ToggleSquare(targetedPieceType, target);
+        }
 
         // En passant Square
         if (flag == MoveFlag.PawnTwo)
@@ -159,6 +195,8 @@ public class Board
         {
             Square epCaptured = (Square) (target + (State.SideToMove ? -8 : 8));
             Position[epCaptured] = PieceHelper.NONE;
+
+            BitboardSets[enemyColor].ToggleSquare(PieceHelper.PAWN, epCaptured);
         }
         // Castling
         else if (MoveFlag.IsCastling(flag))
@@ -168,12 +206,17 @@ public class Board
 
             Position[rookTarget] = Position[rookStart];
             Position[rookStart] = PieceHelper.NONE;
+
+            BitboardSets[movingColor].ToggleSquare(PieceHelper.ROOK, rookStart, rookTarget);
         }
         // Promotion
         else if (MoveFlag.IsPromotion(flag))
         {
             PieceType promType = MoveFlag.GetPromType(flag);
-            Position[target] = PieceHelper.Make(promType, PieceHelper.GetColor(State.SideToMove));
+            Position[target] = PieceHelper.Make(promType, movingColor);
+
+            BitboardSets[movingColor].ToggleSquare(PieceHelper.PAWN, target); // Remove the pawn on the promotion square
+            BitboardSets[movingColor].ToggleSquare(promType, target); // Add the promoted piece
         }
 
         State.SideToMove = !State.SideToMove;
@@ -197,22 +240,47 @@ public class Board
             return;
         }
 
+        
         Square start = move.Start;
         Square target = move.Target;
         ushort flag = move.Flag;
 
         Piece movingPiece = At(target);
+        PieceType movingPieceType = PieceHelper.GetPieceType(movingPiece);
         State = StateStack.Pop();
+
+        Color movingColor = PieceHelper.GetColor(State.SideToMove);
+        Color enemyColor = PieceHelper.GetColor(!State.SideToMove);
 
         Position[start] = movingPiece;
         Position[target] = State.LastCaptured;
+
+        // Update King Square
+        if (movingPieceType == PieceHelper.KING)
+        {
+            KingSquares[movingColor] = start;
+        }
+
+        // Basic bitboard update
+        // Promotion is a special case
+        if (!MoveFlag.IsPromotion(flag))
+        {
+            BitboardSets[movingColor].ToggleSquare(movingPieceType, target, start);
+
+            if (State.LastCaptured != PieceHelper.NONE)
+            {
+                BitboardSets[enemyColor].ToggleSquare(PieceHelper.GetPieceType(State.LastCaptured), target);
+            }
+        }
 
         // Restore a pawn if the move was an en passant
         if (flag == MoveFlag.EP)
         {
             Square epCaptured = (Square) (target + (State.SideToMove ? -8 : 8));
             // Place an enemy pawn
-            Position[epCaptured] = PieceHelper.Make(PieceHelper.PAWN, PieceHelper.GetColor(!State.SideToMove));
+            Position[epCaptured] = PieceHelper.Make(PieceHelper.PAWN, enemyColor);
+
+            BitboardSets[enemyColor].ToggleSquare(PieceHelper.PAWN, epCaptured);
         }
         // Restore a rook if the move was a castling
         else if (MoveFlag.IsCastling(flag))
@@ -222,12 +290,23 @@ public class Board
 
             Position[rookOriginal] = Position[rookCurrent];
             Position[rookCurrent] = PieceHelper.NONE;
+
+            BitboardSets[movingColor].ToggleSquare(PieceHelper.ROOK, rookOriginal, rookCurrent);
         }
         // Replace the piece with a pawn if the move was a promotion
         else if (MoveFlag.IsPromotion(flag))
         {
             // Since the promoted piece is back in the starting square, I need to replace the piece in starting square with a pawn
-            Position[start] = PieceHelper.Make(PieceHelper.PAWN, PieceHelper.GetColor(State.SideToMove));
+            Position[start] = PieceHelper.Make(PieceHelper.PAWN, movingColor);
+
+            PieceType promType = MoveFlag.GetPromType(flag);
+            BitboardSets[movingColor].ToggleSquare(promType, target);
+            BitboardSets[movingColor].ToggleSquare(PieceHelper.PAWN, start);
+
+            if (State.LastCaptured != PieceHelper.NONE)
+            {
+                BitboardSets[enemyColor].ToggleSquare(PieceHelper.GetPieceType(State.LastCaptured), target);
+            }
         }
     }
 // endregion
@@ -237,6 +316,8 @@ public class Board
     public void LoadPositionFromFEN(string fen)
     {
         ClearBoard();
+
+        fen = fen.Trim();
 
         // FEN parsing
         string[] parts = fen.Split(' ');
@@ -276,6 +357,17 @@ public class Board
                 Square square = SquareHelper.GetSquare(file, rank);
                 Position[square] = PieceHelper.Make(type, color);
                 file++;
+
+                if (type == PieceHelper.KING)
+                {
+                    KingSquares[color] = square;
+                }
+
+                // Update Bitboards
+                if (type != PieceHelper.NONE)
+                {
+                    BitboardSets[color].ToggleSquare(type, square);
+                }
             }
         }
 
@@ -318,6 +410,13 @@ public class Board
 
         // Halfmove clock
         State.HalfmoveClock = ushort.Parse(parts[4]);
+    }
+
+    public void PrintMoves()
+    {
+        Move[] moves = MoveGenerator.GenerateMoves().ToArray();
+        Logger.LogLine($"Count: {moves.Length}");
+        Logger.LogLine(string.Join(' ', moves.Select(m => m.Notation)));
     }
 
     public void PrintLargeBoard()

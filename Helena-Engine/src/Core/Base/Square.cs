@@ -22,7 +22,7 @@ public static class SquareHelper
         {
             return "NN";
         }
-        return $"{(char)('A' + GetFile(square))}{(char)('1' + GetRank(square))}";
+        return $"{(char)('a' + GetFile(square))}{(char)('1' + GetRank(square))}";
     }
     public static string ToString(int file, int rank)
     {
@@ -30,7 +30,7 @@ public static class SquareHelper
         {
             return "NN";
         }
-        return $"{'A' + file}{'1' + rank}";
+        return $"{'a' + file}{'1' + rank}";
     }
 
     public const Square INVALID_SQUARE = 64;

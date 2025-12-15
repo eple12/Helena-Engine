@@ -13,8 +13,25 @@ public static class Magic
     public static readonly Bitboard[] BishopMask;
 
     // [Square][Key]
-    public static readonly Bitboard[][] RookAttacks;
-    public static readonly Bitboard[][] BishopAttacks;
+    static readonly Bitboard[][] RookAttacks;
+    static readonly Bitboard[][] BishopAttacks;
+
+    public static Bitboard GetSliderAttacks(Square square, Bitboard blockers, bool ortho)
+    {
+        return ortho ? GetRookAttacks(square, blockers) : GetBishopAttacks(square, blockers);
+    }
+
+    public static Bitboard GetRookAttacks(Square square, Bitboard blockers)
+    {
+        ulong key = ((blockers & RookMask[square]) * RookMagics[square]) >> RookShifts[square];
+        return RookAttacks[square][key];
+    }
+
+    public static Bitboard GetBishopAttacks(Square square, Bitboard blockers)
+    {
+        ulong key = ((blockers & BishopMask[square]) * BishopMagics[square]) >> BishopShifts[square];
+        return BishopAttacks[square][key];
+    }
 
     static Magic()
     {

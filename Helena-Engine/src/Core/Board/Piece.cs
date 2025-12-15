@@ -35,6 +35,15 @@ public static class PieceHelper
         return (PieceType) (piece & TypeMask);
     }
 
+    public static bool IsDiagonal(PieceType type)
+    {
+        return type == BISHOP || type == QUEEN;
+    }
+    public static bool IsOrthogonal(PieceType type)
+    {
+        return type == ROOK || type == QUEEN;
+    }
+
     // Converts a boolean into Color; this is for simplicity
     public static Color GetColor(bool isWhite)
     {

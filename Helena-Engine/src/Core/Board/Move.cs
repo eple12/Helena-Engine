@@ -16,7 +16,16 @@ public struct Move
     public Square Start => (Square) ((moveValue & StartMask) >> 6);
     public Square Target => (Square) (moveValue & TargetMask);
 
-    public string Notation => $"{SquareHelper.ToString(Start)}{SquareHelper.ToString(Target)}";
+    public string Notation {
+        get{
+            if (!MoveFlag.IsPromotion(Flag))
+            {
+                return $"{SquareHelper.ToString(Start)}{SquareHelper.ToString(Target)}";
+            }
+            PieceType type = MoveFlag.GetPromType(Flag);
+            return $"{SquareHelper.ToString(Start)}{SquareHelper.ToString(Target)}{char.ToLower(PieceHelper.ToChar(type))}";
+        }
+    }
 
     public Move(ushort value)
     {
@@ -79,5 +88,12 @@ public struct MoveFlag
         }
 
         return (byte) (PieceHelper.KNIGHT + flag - 12);
+    }
+
+    // Assume that the type is correct for performance
+    // This is used in Move Generation
+    public static ushort GetPromFlag(PieceType type, bool capture)
+    {
+        return (ushort) (type + 6 + (capture ? 4 : 0));
     }
 }

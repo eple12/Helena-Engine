@@ -1,17 +1,10 @@
-using System.Numerics;
-
 namespace H.Core;
 
+using System.Numerics;
+using H.Program;
 
 public static class BitboardHelper
 {
-    public const Bitboard FileA = 0x01010101_01010101;
-    public const Bitboard Rank1 = 0b11111111;
-    
-    public static readonly Bitboard[] Files;
-    public static readonly Bitboard[] Ranks;
-
-    // bb.PopLSB
     public static int PopLSB(ref this Bitboard b)
     {
         int i = BitOperations.TrailingZeroCount(b);
@@ -36,12 +29,22 @@ public static class BitboardHelper
         b ^= 1ul << s1 | 1ul << s2;
     }
 
-    public static bool Contains(ref this Bitboard b, Square square)
+    public static Bitboard PawnAttacks(Bitboard pawns, Color color)
+    {
+        if (color == PieceHelper.WHITE)
+        {
+            return ((pawns << 9) & Bits.NotFileA) | ((pawns << 7) & Bits.NotFileH);
+        }
+
+        return ((pawns >> 9) & Bits.NotFileH) | ((pawns >> 7) & Bits.NotFileA);
+    }
+
+    public static bool Contains(ref readonly this Bitboard b, Square square)
     {
         return (b & (1ul << square)) != 0;
     }
     // NOTICE: "this" bitboard DOES NOT change, it only returns the shifted copy
-    public static Bitboard Shift(ref this Bitboard b, int numSquares)
+    public static Bitboard Shift(Bitboard b, int numSquares)
     {
         if (numSquares > 0)
         {
@@ -53,19 +56,29 @@ public static class BitboardHelper
         }
     }
 
-    static BitboardHelper()
+    // Debugging
+    public static string Display(ref readonly this Bitboard b)
     {
-        Files = new Bitboard[8];
-        for (int file = 0; file < 8; file++)
+        string s = "";
+
+        for (int rank = 7; rank >= 0; rank--)
         {
-            Files[file] = FileA << file;
-        }
-        Ranks = new Bitboard[8];
-        for (int rank = 0; rank < 8; rank++)
-        {
-            Ranks[rank] = Rank1 << (rank * 8);
+            for (int file = 0; file < 8; file++)
+            {
+                Square square = SquareHelper.GetSquare(file, rank);
+                s += b.Contains(square) ? "O " : ". ";
+            }
+
+            if (rank != 0)
+            {
+                s += "\n";
+            }
         }
 
-
+        return s;
+    }
+    public static void Print(ref readonly this Bitboard b)
+    {
+        Logger.LogLine(b.Display());
     }
 }

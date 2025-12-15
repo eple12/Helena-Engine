@@ -117,7 +117,7 @@ public static class MagicHelper
     public static Bitboard CreateMovementMask(Square square, bool ortho)
     {
         Bitboard mask = 0;
-        Coord[] directions = ortho ? Coord.RookDirections : Coord.BishopDirections;
+        Coord[] directions = ortho ? Bits.RookDirections : Bits.BishopDirections;
         Coord start = new(square);
 
         foreach (Coord dir in directions)
@@ -164,7 +164,7 @@ public static class MagicHelper
     {
         Bitboard bb = 0;
 
-        Coord[] directions = ortho ? Coord.RookDirections : Coord.BishopDirections;
+        Coord[] directions = ortho ? Bits.RookDirections : Bits.BishopDirections;
         Coord start = new(square);
 
         foreach (Coord dir in directions)

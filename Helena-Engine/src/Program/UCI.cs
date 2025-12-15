@@ -11,6 +11,7 @@ public enum ProtocolResult
 
 public readonly struct ProtocolCommand
 {
+    public const string PAUSE = "pause"; // For debugging
     public const string QUIT = "quit";
     public const string TEST = "test";
     public const string DISPLAY = "d";
@@ -18,6 +19,13 @@ public readonly struct ProtocolCommand
     public const string POSITION_MOVES = "moves";
     public const string POSITION_STARTPOS = "startpos";
     public const string POSITION_FEN = "fen";
+
+    public const string MOVEGEN = "movegen";
+
+    public const string GO = "go";
+    public const string PERFT = "perft";
+    public const string TIMED_PERFT = "timedperft";
+    public const string ROUTINE_PERFT = "routineperft";
 }
 
 public static class UCI
@@ -34,6 +42,11 @@ public static class UCI
             return ProtocolResult.QUIT;
         }
 
+        if (commandPrefix == ProtocolCommand.PAUSE)
+        {
+            
+        }
+
         switch (commandPrefix)
         {
             case ProtocolCommand.TEST:
@@ -48,11 +61,41 @@ public static class UCI
                 Position(commandParts[1..]);
                 break;
 
+            case ProtocolCommand.MOVEGEN:
+                Main.MainBoard.PrintMoves();
+                break;
+
+            case ProtocolCommand.GO:
+                Go(commandParts[1..]);
+                break;
+
             default:
                 break;
         }
 
         return ProtocolResult.NONE;
+    }
+
+    static void Go(string[] subcommands)
+    {
+        string subPrefix = subcommands[0];
+
+        if (subPrefix == ProtocolCommand.PERFT)
+        {
+            int depth = int.Parse(subcommands[1]);
+            System.Console.WriteLine(Perft.GoPerft(depth, verbose: true));
+        }
+        else if (subPrefix == ProtocolCommand.TIMED_PERFT)
+        {
+            int depth = int.Parse(subcommands[1]);
+            // System.Console.WriteLine(Perft.GoPerft(depth, verbose: true));
+            Perft.GoTimedPerft(depth, verbose: true);
+        }
+        else if (subPrefix == ProtocolCommand.ROUTINE_PERFT)
+        {
+            // System.Console.WriteLine(Perft.GoPerft(depth, verbose: true));
+            Perft.GoRoutine();
+        }
     }
 
     public const string STARTPOS_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
@@ -94,18 +137,19 @@ public static class UCI
     static void Test()
     {
         // Board board = new Board();
-        // System.Console.WriteLine("asdfasdfasdfasdfasdddddddddddddddddddddddddd");
-        Move t1 = new(SquareHelper.E2, SquareHelper.E4, MoveFlag.PawnTwo);
-        Move t2 = new(SquareHelper.E7, SquareHelper.E5, MoveFlag.PawnTwo);
-        Move t3 = new(SquareHelper.G1, SquareHelper.F3);
-        Move t4 = new(SquareHelper.B8, SquareHelper.C6);
-        Move t5 = new(SquareHelper.F3, SquareHelper.E5, MoveFlag.Capture);
+        // Move t1 = new(SquareHelper.E2, SquareHelper.E4, MoveFlag.PawnTwo);
+        // Move t2 = new(SquareHelper.E7, SquareHelper.E5, MoveFlag.PawnTwo);
+        // Move t3 = new(SquareHelper.G1, SquareHelper.F3);
+        // Move t4 = new(SquareHelper.B8, SquareHelper.C6);
+        // Move t5 = new(SquareHelper.F3, SquareHelper.E5, MoveFlag.Capture);
 
-        MainBoard.MakeMove(t1);
-        MainBoard.MakeMove(t2);
-        MainBoard.MakeMove(t3);
-        MainBoard.MakeMove(t4);
-        MainBoard.MakeMove(t5);
-        MainBoard.UnmakeMove(t5);
+        // MainBoard.MakeMove(t1);
+        // MainBoard.MakeMove(t2);
+        // MainBoard.MakeMove(t3);
+        // MainBoard.MakeMove(t4);
+        // MainBoard.MakeMove(t5);
+        // MainBoard.UnmakeMove(t5);
+        // System.Console.WriteLine(Perft.GoPerft(4));
+        Perft.GoPositionAllDepth(in Perft.Perfts[5]);
     }
 }

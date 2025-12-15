@@ -30,9 +30,6 @@ public struct Coord
     // Check if this Coord is valid
     public Square GetSquare => IsValid ? SquareHelper.GetSquare(X, Y) : SquareHelper.INVALID_SQUARE;
 
-    public static readonly Coord[] RookDirections = { new Coord(1, 0), new Coord(0, 1), new Coord(-1, 0), new Coord(0, -1) };
-    public static readonly Coord[] BishopDirections = { new Coord(1, 1), new Coord(-1, 1), new Coord(-1, -1), new Coord(1, -1) };
-
     public override bool Equals(object? obj)
     {
         if (obj is not Coord other) return false;
