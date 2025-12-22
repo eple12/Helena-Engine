@@ -39,6 +39,11 @@ public static class BitboardHelper
         return ((pawns >> 9) & Bits.NotFileH) | ((pawns >> 7) & Bits.NotFileA);
     }
 
+    public static int Count(this Bitboard bb)
+    {
+        return BitOperations.PopCount(bb);
+    }
+
     public static bool Contains(ref readonly this Bitboard b, Square square)
     {
         return (b & (1ul << square)) != 0;

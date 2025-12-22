@@ -15,6 +15,10 @@ public struct Move
     public ushort Flag => (ushort) ((moveValue & FlagMask) >> 12);
     public Square Start => (Square) ((moveValue & StartMask) >> 6);
     public Square Target => (Square) (moveValue & TargetMask);
+    public ushort MoveValue => moveValue;
+
+    public static Move NullMove = new(0);
+
 
     public string Notation {
         get{
@@ -40,6 +44,14 @@ public struct Move
         moveValue = (ushort) ((flag << 12) | (start << 6) | target);
     }
 
+    public static bool operator==(Move a, Move b)
+    {
+        return a.moveValue == b.moveValue;
+    }
+    public static bool operator!=(Move a, Move b)
+    {
+        return !(a == b);
+    }
 }
 
 public struct MoveFlag

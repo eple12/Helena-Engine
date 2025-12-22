@@ -16,6 +16,11 @@ public class BitboardSet
         }
     }
 
+    public Bitboard Indexed(int index)
+    {
+        return set[index];
+    }
+
     public void ToggleSquare(PieceType type, Square square)
     {
         set[type - 1].ToggleSquare(square);

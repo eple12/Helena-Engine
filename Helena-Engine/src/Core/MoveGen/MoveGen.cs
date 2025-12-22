@@ -53,6 +53,23 @@ public class MoveGen
         board = _board;
     }
 
+    public bool InCheck()
+    {
+        return inCheck;
+    }
+    public Bitboard EnemyPawnAttackMap()
+    {
+        return enemyPawnAttackMap;
+    }
+    public Bitboard EnemyAttackMapNoPawn()
+    {
+        return enemyAttackMapNoPawns;
+    }
+    public Bitboard EnemyAttackMap()
+    {
+        return enemyAttackMap;
+    }
+
     // QSearch will be implemented in the future
     public MoveList GenerateMoves(bool capturesOnly = false)
     {

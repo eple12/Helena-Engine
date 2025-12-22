@@ -15,6 +15,14 @@ public static class SquareHelper
     {
         return square / 8;
     }
+    public static int FlipRank(Square square)
+    {
+        return square ^ 56;
+    }
+    public static bool IsLightSquare(Square square)
+    {
+        return (GetRank(square) + GetFile(square)) % 2 == 1;
+    }
 
     public static string ToString(Square square)
     {
@@ -31,6 +39,24 @@ public static class SquareHelper
             return "NN";
         }
         return $"{'a' + file}{'1' + rank}";
+    }
+
+    public static Square Parse(string square)
+    {
+        if (square.Length != 2)
+        {
+            return INVALID_SQUARE;
+        }
+
+        int file = square[0] - 'a';
+        int rank = square[1] - '1';
+
+        if (file < 0 || file > 7 || rank < 0 || rank > 7)
+        {
+            return INVALID_SQUARE;
+        }
+
+        return GetSquare(file, rank);
     }
 
     public const Square INVALID_SQUARE = 64;

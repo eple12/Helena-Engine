@@ -35,6 +35,19 @@ public static class PieceHelper
         return (PieceType) (piece & TypeMask);
     }
 
+    // Piece Index: 0-11 (WP-BK)
+    public static int GetPieceIndex(Piece piece)
+    {
+        PieceType type = GetPieceType(piece);
+        Color color = GetColor(piece);
+
+        return color * 6 + type - 1;
+    }
+    public static int GetPieceIndex(PieceType type, Color color)
+    {
+        return color * 6 + type - 1;
+    }
+
     public static bool IsDiagonal(PieceType type)
     {
         return type == BISHOP || type == QUEEN;

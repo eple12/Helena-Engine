@@ -4,6 +4,7 @@
         "Bitboards",
         "Bitmask",
         "halfmove",
-        "Lague"
+        "Lague",
+        "Zobrist"
     ]
 }
