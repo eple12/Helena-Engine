@@ -1,0 +1,15 @@
+.idea
+.vs
+.vscode
+
+out
+build
+enc_temp_folder
+CMakeFiles
+
+CMakeSettings.json
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+sources.csv
+src/tuner.exe

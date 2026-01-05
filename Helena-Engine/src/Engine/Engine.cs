@@ -67,18 +67,83 @@ public class Engine
 
     void IDDFS(int maxDepth)
     {
-        searchTimer.Start();
+        MoveList currentLegalMoves = board.MoveGenerator.GenerateMoves();
+        if (currentLegalMoves.Length == 0)
+        {
+            System.Console.WriteLine("No legal moves found.");
+            return;
+        }
+
         pv.ClearAll();
+        
+        int alpha = -INF;
+        int beta = INF;
 
         int lastEval = -INF;
 
+        maxDepth = Math.Min(maxDepth, Constants.MAX_DEPTH);
+        
+        searchTimer.Start();
+
         for (int depth = 1; depth <= maxDepth; depth++)
         {
-            Negamax(depth, 0, -INF, INF);
+            if (depth < Constants.AspirationWindowDepth || lastEval == -INF)
+            {
+                Negamax(depth, 0, alpha, beta);
+            }
+            else // Aspiration Windows
+            {
+                int window = Constants.AspirationWindowBase;
+
+                alpha = Math.Max(-INF, lastEval - window);
+                beta = Math.Min(INF, lastEval + window);
+
+                int numAspirations = 0;
+
+                while (true)
+                {
+                    if (cancellationRequested)
+                    {
+                        break;
+                    }
+
+                    ++numAspirations;
+
+                    int eval = Negamax(depth, 0, alpha, beta);
+                    window += window >> 1; // + window/2
+
+                    if (alpha >= eval) // Fail low
+                    {
+                        alpha = Math.Max(-INF, eval - window);
+                    }
+                    else if (eval >= beta) // Fail high
+                    {
+                        beta = Math.Min(INF, eval + window);
+                    }
+                    else
+                    {
+                        // Search complete
+                        break;
+                    }
+
+                    if (numAspirations >= Constants.MaxAspirations || Evaluation.IsMateEval(eval))
+                    {
+                        alpha = -INF;
+                        beta = INF;
+
+                        // Search on this depth will be complete after this iteration
+                    }
+                }
+            }
 
             bestMoveLastIteration = bestMove;
             lastEval = bestEval;
-
+ 
+            pv.ClearExceptRoot();
+            if (bestMove == Move.NullMove)
+            {
+                bestMove = currentLegalMoves[0];
+            }
             if (pv[0] == Move.NullMove)
             {
                 pv[0] = bestMove;
@@ -92,6 +157,11 @@ public class Engine
             System.Console.WriteLine($"info depth {depth} score {scoreString} nodes {numNodesSearched} time {elapsedMS} nps {numNodesSearched * 1000 / elapsedMS} pv {pv.GetRootString()}");
 
             if (cancellationRequested)
+            {
+                break;
+            }
+
+            if (isMate && (matePly <= depth))
             {
                 break;
             }
@@ -147,11 +217,14 @@ public class Engine
             {
                 ttMove = tt.GetStoredMove();
 
-                return ttVal;
+                if (!isPv)
+                {
+                    return ttVal;    
+                }
             }
         }
 
-        if (depth == 0)
+        if (depth <= 0)
         {
             return QuiescenceSearch(alpha, beta);
         }
@@ -196,10 +269,12 @@ public class Engine
                 // First, try to prove the move is bad with a quick search.
                 
                 bool isQuietMove = !MoveFlag.IsCapture(moves[i].Flag) && !MoveFlag.IsPromotion(moves[i].Flag);
-                if (depth >= 3 && i >= 2 && isQuietMove && !inCheck) // Reduction
+                if (i >= 2 && isQuietMove && !inCheck) // Reduction
                 {
                     int reduction = 1;
                     if (i > 5) reduction = depth / 3;
+
+                    if (isPv) reduction--;
 
                     // Search with reduced depth and a null window
                     score = -Negamax(depth - 1 - reduction, plyFromRoot + 1, -alpha - 1, -alpha);

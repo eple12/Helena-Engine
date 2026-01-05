@@ -90,7 +90,8 @@ public static class UCI
                 break;
 
             case ProtocolCommand.EVAL:
-                System.Console.WriteLine($"Eval: {Evaluation.Eval()}");
+                int eval = Evaluation.Eval(verbose: true);
+                System.Console.WriteLine($"Eval: {eval}");
                 break;
 
             case ProtocolCommand.UCI:

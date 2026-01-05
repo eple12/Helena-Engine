@@ -3,7 +3,9 @@ namespace H.Engine;
 using H.Core;
 using H.Program;
 
-using static EvaluationConstants;
+// using static EvaluationConstants;
+using static TunedEvaluation;
+using static EvaluationHelper;
 
 public static class Evaluation
 {
@@ -53,7 +55,7 @@ public static class Evaluation
         // Clamp the current phase sum to ensure it doesn't exceed the max
         // (e.g., if a non-standard setup has more pieces than initial)
         currentPhaseSum = Math.Min(currentPhaseSum, MAX_TOTAL_PHASE_VALUE);
-        currentPhaseSum = Math.Max(currentPhaseSum, 0); // Ensure non-negative
+        // currentPhaseSum = Math.Max(currentPhaseSum, 0); // Ensure non-negative
 
         // Normalize to 0-256 range
         phase = currentPhaseSum * 256 / MAX_TOTAL_PHASE_VALUE;
@@ -64,7 +66,7 @@ public static class Evaluation
         enemyColor = isWhiteToMove ? PieceHelper.BLACK : PieceHelper.WHITE;
     }
 
-    public static int Eval()
+    public static int Eval(bool verbose = false)
     {
         Update();
 
@@ -86,8 +88,16 @@ public static class Evaluation
         eval += PawnValue(friendlyColor);
         eval -= PawnValue(enemyColor);
 
-        eval += KingSafety(friendlyColor);
-        eval -= KingSafety(enemyColor);
+        TaperedScore kingEval = new(0, 0);
+        kingEval += KingSafety(friendlyColor);
+        kingEval -= KingSafety(enemyColor);
+
+        if (verbose)
+        {
+            System.Console.WriteLine(kingEval[phase]);
+        }
+        
+        eval += kingEval;
 
         return eval[phase];
     }
@@ -103,12 +113,18 @@ public static class Evaluation
         return val;
     }
     static readonly TaperedScore[][] PsqtTables = {
-        PSQT.Pawns,
-        PSQT.Knights,
-        PSQT.Bishops,
-        PSQT.Rooks,
-        PSQT.Queens,
-        PSQT.King
+        // PSQT.Pawns,
+        // PSQT.Knights,
+        // PSQT.Bishops,
+        // PSQT.Rooks,
+        // PSQT.Queens,
+        // PSQT.King
+        PawnPsqt,
+        KnightPsqt,
+        BishopPsqt,
+        RookPsqt,
+        QueenPsqt,
+        KingPsqt
     };
     static TaperedScore PSQTValue()
     {
@@ -244,22 +260,80 @@ public static class Evaluation
     {
         TaperedScore eval = new (0, 0);
         Square kingSquare = board.KingSquares[color];
-        int file = SquareHelper.GetFile(kingSquare);
+        int kingFile = SquareHelper.GetFile(kingSquare);
 
-        Bitboard friendlyAll = board.BitboardSets[color].All;
-        Bitboard kingRing = Bits.KingMovement[kingSquare];
+        Color opponent = (Color)(1 - color);
+        Bitboard friendlyPawns = board.BitboardSets[color][PieceHelper.PAWN];
 
-        if (IsOpenFile(file))
+        // 1. Pawn Shelter & File Openings
+        int shelterBaseRank = (color == PieceHelper.WHITE) ? 1 : 6;
+        for (int file = Math.Max(0, kingFile - 1); file <= Math.Min(7, kingFile + 1); file++)
         {
-            eval -= KingOpenFilePenalty;
-        }
-        else if (IsSemiOpenFile(file, (Color) (1 - color)))
-        {
-            eval -= KingOpenFilePenalty;
+            Bitboard fileBB = Bits.Files[file];
+            Bitboard shelterPawns = friendlyPawns & fileBB;
+
+            if (shelterPawns == 0) // No friendly pawn on this file
+            {
+                eval -= PawnShelterMissingPenalty;
+                // Check for open files
+                if ((board.BitboardSets[opponent][PieceHelper.PAWN] & fileBB) == 0) // Fully open
+                    eval -= KingFileOpenPenalty;
+                else // Semi-open for opponent
+                    eval -= KingFileSemiOpenPenalty;
+            }
+            else
+            {
+                Square pawnSquare = (Square) ((color == PieceHelper.WHITE) ? shelterPawns.PopLSB() : shelterPawns.PopMSB());
+                int pawnRank = SquareHelper.GetRank(pawnSquare);
+                int rankDist = Math.Abs(pawnRank - shelterBaseRank);
+                if (rankDist > 1) // Pawns advanced more than one step from base are weak
+                {
+                    eval -= PawnShelterWeakPenalty * (rankDist -1);
+                }
+            }
         }
 
-        Bitboard protectors = friendlyAll & kingRing;
-        eval += protectors.Count() * KingProtector;
+        // // 3. King Attacks
+        // int attackUnits = 0;
+        // Bitboard kingZone = KingArea[kingSquare];
+        // Bitboard allPieces = board.BitboardSets[0].All | board.BitboardSets[1].All;
+
+        // // Knights
+        // Bitboard attackers = board.BitboardSets[opponent][PieceHelper.KNIGHT];
+        // while (attackers != 0)
+        // {
+        //     Square attackerSq = (Square) attackers.PopLSB();
+        //     if ((Bits.KnightMovement[attackerSq] & kingZone) != 0)
+        //         attackUnits += AttackerWeight[PieceHelper.KNIGHT];
+        // }
+        // // Bishops
+        // attackers = board.BitboardSets[opponent][PieceHelper.BISHOP];
+        // while (attackers != 0)
+        // {
+        //     Square attackerSq = (Square) attackers.PopLSB();
+        //     if ((Magic.GetBishopAttacks(attackerSq, allPieces) & kingZone) != 0)
+        //         attackUnits += AttackerWeight[PieceHelper.BISHOP];
+        // }
+        // // Rooks
+        // attackers = board.BitboardSets[opponent][PieceHelper.ROOK];
+        // while (attackers != 0)
+        // {
+        //     Square attackerSq = (Square) attackers.PopLSB();
+        //     if ((Magic.GetRookAttacks(attackerSq, allPieces) & kingZone) != 0)
+        //         attackUnits += AttackerWeight[PieceHelper.ROOK];
+        // }
+        // // Queens
+        // attackers = board.BitboardSets[opponent][PieceHelper.QUEEN];
+        // while (attackers != 0)
+        // {
+        //     Square attackerSq = (Square) attackers.PopLSB();
+        //     if (((Magic.GetBishopAttacks(attackerSq, allPieces) | Magic.GetRookAttacks(attackerSq, allPieces)) & kingZone) != 0)
+        //         attackUnits += AttackerWeight[PieceHelper.QUEEN];
+        // }
+
+
+        // attackUnits = Math.Min(attackUnits, KingSafetyPenaltyTableLength - 1);
+        // eval -= KingSafetyPenaltyTable[attackUnits];
 
         return eval;
     }
@@ -373,5 +447,9 @@ public struct TaperedScore
     public static TaperedScore operator *(int m, TaperedScore a)
     {
         return new TaperedScore(a.value * m);
+    }
+    public static TaperedScore operator /(TaperedScore a, int m)
+    {
+        return new TaperedScore(a.value / m);
     }
 }

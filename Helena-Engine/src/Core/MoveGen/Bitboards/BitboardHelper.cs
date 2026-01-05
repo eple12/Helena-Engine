@@ -11,6 +11,12 @@ public static class BitboardHelper
         b &= b - 1;
         return i;
     }
+    public static int PopMSB(ref this Bitboard b)
+    {
+        int i = BitOperations.LeadingZeroCount(b);
+        b ^= 1ul << (63 - i);
+        return 63 - i;
+    }
 
     public static void SetSquare(ref this Bitboard b, Square square)
     {

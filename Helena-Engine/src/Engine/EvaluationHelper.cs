@@ -1,36 +1,9 @@
 namespace H.Engine;
 
-using S = TaperedScore;
 using H.Core;
 
-public static class EvaluationConstants
+public static class EvaluationHelper
 {
-    
-    public static readonly S[] MaterialValues = {
-        new S(100, 100), new S(300, 300), new S(320, 320), new S(500, 500), new S(900, 900)
-    };
-
-    public static readonly S CloserToEnemyKing = new S(0, 50);
-    public static readonly S EnemyKingCorner = new S(0, 50);
-    public static readonly S OutpostBonus = new S(25, 20);
-    public static readonly S OpenFileBonus = new S(20, 5);
-    public static readonly S SemiFileBonus = new S(15, 5);
-    // [Rank]
-    public static readonly S[] PassedPawnBonus = {
-        new S(0, 0), new S(5, 5), new S(10, 10), new S(20, 20), new S(30, 30), new S(40, 40), new S(50, 50), new S(0, 0)
-    };
-    public static readonly S IsolatedPawnPenaltyPerPawn = new S(5, 5);
-
-    // King Safety
-    public static readonly S PawnShelterMissingPenalty = new S(15, 0);
-    public static readonly S PawnShelterWeakPenalty = new S(10, 0);
-    public static readonly S KingFileOpenPenalty = new S(20, 0);
-    public static readonly S KingFileSemiOpenPenalty = new S(10, 0);
-    // UNUSED
-    // public static readonly int[] AttackerWeight = { 0, 0, 2, 2, 3, 5, 0 }; // None, Pawn, Knight, Bishop, Rook, Queen, King
-    // public const int KingSafetyPenaltyTableLength = 100;
-    // public static readonly S[] KingSafetyPenaltyTable = new S[KingSafetyPenaltyTableLength];
-
     // Evaluation precomputed data
     public static readonly int[,] DistanceFromSquare;
     public static readonly int[] DistanceFromCenter;
@@ -42,7 +15,7 @@ public static class EvaluationConstants
     public static readonly Bitboard[][] ForwardPawnAttackers;
     public static readonly Bitboard[] KingArea;
 
-    static EvaluationConstants()
+    static EvaluationHelper()
     {
         DistanceFromSquare = new int[64, 64];
         DistanceFromCenter = new int[64];
@@ -121,13 +94,5 @@ public static class EvaluationConstants
         {
             KingArea[sq] = Bits.KingMovement[sq] | (1UL << (int)sq);
         }
-
-        // for (int i = 0; i < KingSafetyPenaltyTable.Length; i++)
-        // {
-        //     // Quadratic penalty, gets severe quickly. Capped at 100 attack units.
-        //     double midgamePenalty = i * i / 2.0;
-        //     double endgamePenalty = i * i / 4.0;
-        //     KingSafetyPenaltyTable[i] = new S((int)midgamePenalty, (int)endgamePenalty);
-        // }
     }
 }
