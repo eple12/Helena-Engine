@@ -67,7 +67,7 @@ public class Board
 
     public bool InCheck()
     {
-        return MoveGenerator.InCheck();
+        return State.Checkers != 0;
     }
 
 // region Move Making
@@ -264,6 +264,8 @@ public class Board
         {
             State.HalfmoveClock++;
         }
+
+        CalculatePinData();
     }
 
     public void UnmakeMove(Move move)
@@ -450,107 +452,204 @@ public class Board
 // endregion
 // endregion
 
+    // Calculate Pin & Checker data for MoveGen & SEE
+    void CalculatePinData()
+    {
+        Color us = PieceHelper.GetColor(State.SideToMove);
+        Color them = PieceHelper.GetColor(!State.SideToMove);
+
+        Square ksq = KingSquares[us];
+        Bitboard notKsq = ~(1ul << ksq);
+
+        Bitboard occupied = BitboardSets[us].All | BitboardSets[them].All;
+        Bitboard queens = BitboardSets[them][PieceHelper.QUEEN];
+        Bitboard rookLike = BitboardSets[them][PieceHelper.ROOK] | queens;
+        Bitboard bishopLike = BitboardSets[them][PieceHelper.BISHOP] | queens;
+
+        // Pawn & Knight checkers
+        Bitboard checkers = (
+            (Bits.PawnAttacks[us][ksq] & BitboardSets[them][PieceHelper.PAWN]) |
+            (Bits.KnightMovement[ksq] & BitboardSets[them][PieceHelper.KNIGHT])
+        );
+
+        Bitboard checkRayBitmask = checkers;
+        Bitboard pinned = 0;
+
+        int startDirIndex = 0;
+        int endDirIndex = 8;
+
+        // Skip direction check (Pin / Check)
+        // There are no enemy queens
+        if (queens == 0)
+        {
+            startDirIndex = rookLike != 0 ? 0 : 4;
+            endDirIndex = bishopLike != 0 ? 8 : 4;
+        }
+
+        for (int dirIndex = startDirIndex; dirIndex < endDirIndex; dirIndex++)
+        {
+            bool isDiagonal = dirIndex >= 4;
+            Bitboard slider = isDiagonal ? bishopLike : rookLike;
+
+            Bitboard dirRay = Bits.DirRayMasks[ksq][dirIndex];
+            if ((dirRay & slider) == 0)
+            {
+                continue;
+            }
+
+            Bitboard blockers = dirRay & occupied & notKsq;
+
+            Square firstBlocker = BitboardHelper.FirstBlocker(blockers, dirIndex);
+            if (PieceHelper.IsColor(At(firstBlocker), them)) // Enemy piece: checker
+            {
+                if (slider.Contains(firstBlocker)) // Slider: checker
+                {
+                    checkers |= 1ul << firstBlocker;
+                    checkRayBitmask |= Bits.BetweenMasks[ksq + Bits.DirectionOffsets[dirIndex]][firstBlocker];
+                } // else: doesn't matter, this piece is blocking the ray and it is not a checker
+                
+                continue;
+            }
+            else // Friendly piece: might be pinned
+            {
+                blockers.ToggleSquare(firstBlocker); // Remove the first blocker
+                Square secondBlocker = BitboardHelper.FirstBlocker(blockers, dirIndex);
+
+                if (PieceHelper.IsColor(At(secondBlocker), them)) // Might be a pinner
+                {
+                    if (slider.Contains(secondBlocker)) // Slider: pinner
+                    {
+                        // Does not include the king. In the direction, king + 1 ~ pinner
+                        pinned.SetSquare(firstBlocker);
+
+                        continue;
+                    } // else: not a pinner
+                } // else: two friendly pieces
+
+                continue;
+            }
+        }
+
+        if (checkers == 0)
+        {
+            checkRayBitmask = ulong.MaxValue;
+        }
+
+        // Save them
+        State.Checkers = checkers;
+        State.CheckRay = checkRayBitmask;
+        State.Pinned = pinned;
+    }
+
     // Assume that the FEN is valid for "performance".. although it will NOT be used in the search
     // (I just want to keep things simple for now)
     public void LoadPositionFromFEN(string fen)
     {
         ClearBoard();
 
-        fen = fen.Trim();
+        ReadFenString();
 
-        // FEN parsing
-        string[] parts = fen.Split(' ');
+        State.Key = Zobrist.GetZobristKey(this);
 
-        string pieces = parts[0];
-        int rank = 7;
-        int file = 0;
+        // Update Checkers and Pins
+        CalculatePinData();
 
-        foreach (char c in pieces)
+        void ReadFenString()
         {
-            if (c == '/')
+            fen = fen.Trim();
+
+            // FEN parsing
+            string[] parts = fen.Split(' ');
+
+            string pieces = parts[0];
+            int rank = 7;
+            int file = 0;
+
+            foreach (char c in pieces)
             {
-                rank--;
-                file = 0;
-                continue;
+                if (c == '/')
+                {
+                    rank--;
+                    file = 0;
+                    continue;
+                }
+
+                if (char.IsDigit(c))
+                {
+                    int emptySquares = c - '0'; // character type digit to integer; oldest trick in the book
+                    file += emptySquares;
+                }
+                else
+                {
+                    Color color = PieceHelper.GetColor(char.IsUpper(c));
+                    PieceType type = c.ToString().ToLower() switch
+                    {
+                        "p" => PieceHelper.PAWN,
+                        "n" => PieceHelper.KNIGHT,
+                        "b" => PieceHelper.BISHOP,
+                        "r" => PieceHelper.ROOK,
+                        "q" => PieceHelper.QUEEN,
+                        "k" => PieceHelper.KING,
+                        _ => PieceHelper.NONE
+                    };
+
+                    Square square = SquareHelper.GetSquare(file, rank);
+                    Position[square] = PieceHelper.Make(type, color);
+                    file++;
+
+                    if (type == PieceHelper.KING)
+                    {
+                        KingSquares[color] = square;
+                    }
+
+                    // Update Bitboards
+                    if (type != PieceHelper.NONE)
+                    {
+                        BitboardSets[color].ToggleSquare(type, square);
+                    }
+                }
             }
 
-            if (char.IsDigit(c))
+            // stm stands for side to move btw
+            string stm = parts[1];
+            State.SideToMove = stm == "w";
+
+            // Castling rights
+            string castling = parts[2];
+            ushort castlingRights = BoardState.NoCastlingBits;
+            if (castling.Contains('K')) castlingRights |= BoardState.WKCastlingMask;
+            if (castling.Contains('Q')) castlingRights |= BoardState.WQCastlingMask;
+            if (castling.Contains('k')) castlingRights |= BoardState.BKCastlingMask;
+            if (castling.Contains('q')) castlingRights |= BoardState.BQCastlingMask;
+            State.CastlingRights = castlingRights;
+
+            // Below are optional; so we check the FEN length
+            if (parts.Length < 4)
             {
-                int emptySquares = c - '0'; // character type digit to integer; oldest trick in the book
-                file += emptySquares;
+                return; // It's ok because we emptied the board, so EP square will be INVALID_SQUARE
+            }
+
+            // En passant square
+            string enPassant = parts[3];
+            if (enPassant == "-")
+            {
+                State.EnPassantSquare = SquareHelper.INVALID_SQUARE;
             }
             else
             {
-                Color color = PieceHelper.GetColor(char.IsUpper(c));
-                PieceType type = c.ToString().ToLower() switch
-                {
-                    "p" => PieceHelper.PAWN,
-                    "n" => PieceHelper.KNIGHT,
-                    "b" => PieceHelper.BISHOP,
-                    "r" => PieceHelper.ROOK,
-                    "q" => PieceHelper.QUEEN,
-                    "k" => PieceHelper.KING,
-                    _ => PieceHelper.NONE
-                };
-
-                Square square = SquareHelper.GetSquare(file, rank);
-                Position[square] = PieceHelper.Make(type, color);
-                file++;
-
-                if (type == PieceHelper.KING)
-                {
-                    KingSquares[color] = square;
-                }
-
-                // Update Bitboards
-                if (type != PieceHelper.NONE)
-                {
-                    BitboardSets[color].ToggleSquare(type, square);
-                }
+                int fileEP = enPassant[0] - 'a';
+                int rankEP = enPassant[1] - '1';
+                State.EnPassantSquare = SquareHelper.GetSquare(fileEP, rankEP);
             }
+
+            if (parts.Length < 5)
+            {
+                return;
+            }
+
+            // Halfmove clock
+            State.HalfmoveClock = ushort.Parse(parts[4]);
         }
-
-        // stm stands for side to move btw
-        string stm = parts[1];
-        State.SideToMove = stm == "w";
-
-        // Castling rights
-        string castling = parts[2];
-        ushort castlingRights = BoardState.NoCastlingBits;
-        if (castling.Contains('K')) castlingRights |= BoardState.WKCastlingMask;
-        if (castling.Contains('Q')) castlingRights |= BoardState.WQCastlingMask;
-        if (castling.Contains('k')) castlingRights |= BoardState.BKCastlingMask;
-        if (castling.Contains('q')) castlingRights |= BoardState.BQCastlingMask;
-        State.CastlingRights = castlingRights;
-
-        // Below are optional; so we check the FEN length
-        if (parts.Length < 4)
-        {
-            return; // It's ok because we emptied the board, so EP square will be INVALID_SQUARE
-        }
-
-        // En passant square
-        string enPassant = parts[3];
-        if (enPassant == "-")
-        {
-            State.EnPassantSquare = SquareHelper.INVALID_SQUARE;
-        }
-        else
-        {
-            int fileEP = enPassant[0] - 'a';
-            int rankEP = enPassant[1] - '1';
-            State.EnPassantSquare = SquareHelper.GetSquare(fileEP, rankEP);
-        }
-
-        if (parts.Length < 5)
-        {
-            return;
-        }
-
-        // Halfmove clock
-        State.HalfmoveClock = ushort.Parse(parts[4]);
-
-        State.Key = Zobrist.GetZobristKey(this);
     }
 
     public void PrintMoves()
@@ -578,6 +677,12 @@ public class Board
         State.Print();
     }
 
+    public void Test()
+    {
+        CalculatePinData();
+        // MoveList moves = MoveGenerator.GenerateMoves();
+    }
+
     // The piece at the square
     public Piece At(Square square)
     {
@@ -593,10 +698,15 @@ public struct BoardState
     public ushort HalfmoveClock;
     public Piece LastCaptured;
 
+    public Bitboard Checkers;
+    public Bitboard CheckRay;
+    public Bitboard Pinned;
+
     public ulong Key;
 
     public BoardState(bool sideToMove, ushort castlingRights, byte enPassantSquare, 
-        ushort halfmoveClock = 0, Piece lastCaptured = PieceHelper.NONE, ulong key = 0)
+        ushort halfmoveClock = 0, Piece lastCaptured = PieceHelper.NONE, ulong key = 0,
+        Bitboard checkers = 0, Bitboard checkRay = 0, Bitboard pinned = 0)
     {
         SideToMove = sideToMove;
         CastlingRights = castlingRights;
@@ -604,6 +714,10 @@ public struct BoardState
         HalfmoveClock = halfmoveClock;
         LastCaptured = lastCaptured;
         Key = key;
+
+        Checkers = checkers;
+        CheckRay = checkRay;
+        Pinned = pinned;
     }
 
     public void Print()

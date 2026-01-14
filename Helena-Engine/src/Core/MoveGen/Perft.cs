@@ -37,7 +37,8 @@ public static class Perft
         Stopwatch sw = Stopwatch.StartNew();
         ulong r = GoPerft(depth, verbose);
         sw.Stop();
-        System.Console.WriteLine(r);
+        System.Console.WriteLine($"Result: {r} / {((r == position.Results[depth - 1]) ? "PASS" : "FAIL")}");
+        System.Console.WriteLine($"Expected: {position.Results[depth - 1]}");
         double inSec = sw.Elapsed.TotalMilliseconds * 0.001;
         System.Console.WriteLine($"Elapsed time: {inSec:F3}s");
         System.Console.WriteLine($"{r/inSec:F3} Nodes/s");

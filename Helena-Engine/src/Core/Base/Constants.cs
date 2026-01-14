@@ -17,4 +17,6 @@ public static class Constants
     public const int AspirationWindowDepth = 8;
     public const int AspirationWindowBase = 20;
     public const int MaxAspirations = 3;
+
+    public const int MaxKillerPly = 32;
 }

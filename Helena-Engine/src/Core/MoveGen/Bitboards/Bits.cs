@@ -61,6 +61,9 @@ public static class Bits
     public static readonly Coord[] KnightJump = { new Coord(2, 1), new Coord(1, 2), new Coord(-1, 2), new Coord(-2, 1), new Coord(-2, -1), new Coord(-1, -2), new Coord(1, -2), new Coord(2, -1) };
 
     public static readonly Coord[] DirectionCoords = [.. RookDirections, .. BishopDirections];
+    /// <summary>
+    /// [0-3]: Rook (1, 8, -1, -8) p4-7]: Bishop (9, 7, -9, -7)
+    /// </summary>
     public static readonly int[] DirectionOffsets = { 1, 8, -1, -8, 9, 7, -9, -7 };
 
     public static readonly int[][] NumSquaresToEdge; // [Square] [Direction] Direction: 0-7
@@ -68,6 +71,9 @@ public static class Bits
     public static readonly Bitboard[][] DirRayMasks; // [Square] [Direction]
     // Draw a line with two squares
     public static readonly Bitboard[][] AlignMasks; // [Square1] [Square2]
+    // Draw a between-line with two squares
+    // Includes both squares
+    public static readonly Bitboard[][] BetweenMasks; // [Square1] [Square2]
 // endregion
 
 
@@ -191,6 +197,43 @@ public static class Bits
                     if (coord.IsValid)
                     {
                         AlignMasks[squareA][squareB] |= 1ul << coord.GetSquare;
+                    }
+                }
+            }
+        }
+
+        BetweenMasks = new Bitboard[64][];
+        for (Square squareA = 0; squareA < 64; squareA++)
+        {
+            BetweenMasks[squareA] = new Bitboard[64];
+            for (Square squareB = 0; squareB < 64; squareB++)
+            {
+                BetweenMasks[squareA][squareB] = 0;
+            }
+
+            BetweenMasks[squareA][squareA] = 1ul << squareA;
+            
+            Coord here = new Coord(squareA);
+
+            for (int dirIndex = 0; dirIndex < 8; dirIndex++)
+            {
+                Coord dirCoord = DirectionCoords[dirIndex];
+
+                Bitboard dirRay = 1ul << squareA;
+
+                for (int i = 1; i <= 7; i++)
+                {
+                    Coord next = here + i * dirCoord;
+
+                    if (next.IsValid)
+                    {
+                        Square nextSq = next.GetSquare;
+                        dirRay.ToggleSquare(nextSq);
+                        BetweenMasks[squareA][nextSq] = dirRay;
+                    }
+                    else
+                    {
+                        break;
                     }
                 }
             }

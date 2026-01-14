@@ -19,7 +19,9 @@ public class Engine
     SearchRequest lastSearchRequest;
     Action OnSearchComplete;
     Stopwatch searchTimer = new();
+
     MoveOrdering moveOrdering;
+    SEE see;
 
     // Search vars
     Move bestMove;
@@ -32,7 +34,10 @@ public class Engine
     {
         board = _board;
         tt = new(_board);
+
         moveOrdering = new(_board);
+        see = new(board);
+
         pv = new();
 
         OnSearchComplete = () => {};
@@ -47,6 +52,8 @@ public class Engine
     void ResetField()
     {
         pv.ClearAll();
+        moveOrdering.ClearHistory();
+        moveOrdering.ClearKillerMoves();
 
         searchTimer.Reset();
         numNodesSearched = 0;
@@ -304,6 +311,17 @@ public class Engine
             if (score >= beta)
             {
                 tt.StoreEval(depth, plyFromRoot, beta, TT.Beta, moves[i]);
+
+                if (!MoveFlag.IsCapture(moves[i].Flag))
+                {
+                    if (plyFromRoot < Constants.MaxKillerPly)
+                    {
+                        moveOrdering.KillerMoves[plyFromRoot].Add(moves[i]);
+                    }
+
+                    int historyScore = depth * depth;
+                    moveOrdering.History[board.State.SideToMove ? 0 : 1, moves[i].Start, moves[i].Target] += historyScore;
+                }
 
                 return beta;
             }

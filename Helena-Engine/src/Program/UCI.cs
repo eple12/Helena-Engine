@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Transactions;
 using H.Core;
 using H.Engine;
@@ -12,6 +13,8 @@ public enum ProtocolResult
 
 public readonly struct ProtocolCommand
 {
+    public const string HELP = "help";
+
     public const string PAUSE = "pause"; // For debugging
     public const string QUIT = "quit";
     public const string TEST = "test";
@@ -60,6 +63,11 @@ public static class UCI
             
         }
 
+        if (commandPrefix == ProtocolCommand.HELP)
+        {
+            HelpMessage();
+        }
+
         switch (commandPrefix)
         {
             case ProtocolCommand.TEST:
@@ -106,6 +114,58 @@ public static class UCI
         }
 
         return ProtocolResult.NONE;
+    }
+
+    static void HelpMessage()
+    {
+        System.Console.WriteLine("Helena-Engine UCI+ Commands");
+        System.Console.WriteLine();
+        System.Console.WriteLine("UCI+ Commands:");
+        System.Console.WriteLine();
+        System.Console.WriteLine("help");
+        System.Console.WriteLine("    - Print command guides");
+        System.Console.WriteLine();
+        System.Console.WriteLine("quit");
+        System.Console.WriteLine("    - Quit immediately");
+        System.Console.WriteLine();
+        System.Console.WriteLine("uci");
+        System.Console.WriteLine("    - Check the UCI protocol");
+        System.Console.WriteLine();
+        System.Console.WriteLine("isready");
+        System.Console.WriteLine("    - Check if the engine is ready for a search");
+        System.Console.WriteLine();
+        System.Console.WriteLine("d");
+        System.Console.WriteLine("    - Print the current board state");
+        System.Console.WriteLine();
+        System.Console.WriteLine("position <fen FEN | startpos> [moves move1 move2 ...]");
+        System.Console.WriteLine("    - Load a position from FEN string");
+        System.Console.WriteLine();
+        System.Console.WriteLine("movegen");
+        System.Console.WriteLine("    - Perform move generation and print out the legal moves");
+        System.Console.WriteLine();
+        System.Console.WriteLine("go <[depth] [infinite] [movetime] [wtime] [btime] [winc] [binc] | perft <depth> | timedperft <depth> | routineperft>");
+        System.Console.WriteLine("    - Perform engine search");
+        System.Console.WriteLine();
+        System.Console.WriteLine("stop");
+        System.Console.WriteLine("    - Stop the search immediately");
+        System.Console.WriteLine();
+        System.Console.WriteLine("move <move1 move2 ...>");
+        System.Console.WriteLine("    - Make the moves directly");
+        System.Console.WriteLine();
+        System.Console.WriteLine("eval");
+        System.Console.WriteLine("    - Perform static evaluation and print out the eval");
+        System.Console.WriteLine();
+        System.Console.WriteLine();
+
+        // Debugging
+        System.Console.WriteLine("Debugging Commands:");
+        System.Console.WriteLine();
+        System.Console.WriteLine("pause");
+        System.Console.WriteLine("    - Pause the program immediately in Debug Mode");
+        System.Console.WriteLine();
+        System.Console.WriteLine("test");
+        System.Console.WriteLine("    - Perform the current Test function");
+        System.Console.WriteLine();
     }
 
     static void Go(string[] subcommands)
@@ -272,7 +332,7 @@ public static class UCI
 
     static void Test()
     {
-        engine.Search(4);
+        // engine.Search(4);
         // System.Console.WriteLine(TTEntry.GetSize());
         // Board board = new Board();
         // Move t1 = new(SquareHelper.E2, SquareHelper.E4, MoveFlag.PawnTwo);
@@ -289,5 +349,15 @@ public static class UCI
         // MainBoard.UnmakeMove(t5);
         // System.Console.WriteLine(Perft.GoPerft(4));
         // Perft.GoPositionAllDepth(in Perft.Perfts[5]);
+
+        var sw = Stopwatch.StartNew();
+
+        for (int i = 0; i < 1000000; i++)
+        {
+            MainBoard.Test();
+        }
+
+        sw.Stop();
+        System.Console.WriteLine(sw.ElapsedMilliseconds);
     }
 }

@@ -18,17 +18,28 @@ public class MoveOrdering
     ulong enemyAttackMapNoPawn;
     ulong enemyAttackMap;
 
+    public int[,,] History;
+    public Killers[] KillerMoves;
+
+    int color;
+
     public MoveOrdering(Board _board)
     {
         board = _board;
         moveScores = new int[Constants.MAX_MOVES];
+
+        History = new int[2, 64, 64];
+        KillerMoves = new Killers[Constants.MaxKillerPly];
     }
 
     public MoveList GetOrderedMoves(ref MoveList moves, Move lastIteration, bool inQSearch, int ply)
     {
+        // We still have these values in MoveGen since we call MoveOrdering right after MoveGen
         enemyPawnAttackMap = board.MoveGenerator.EnemyPawnAttackMap();
         enemyAttackMapNoPawn = board.MoveGenerator.EnemyAttackMapNoPawn();
         enemyAttackMap = board.MoveGenerator.EnemyAttackMap();
+
+        color = board.State.SideToMove ? 0 : 1;
 
         GetScores(ref moves, lastIteration, inQSearch, ply);
         Quicksort(ref moves, moveScores, 0, moves.Length - 1);
@@ -88,7 +99,7 @@ public class MoveOrdering
         else if (!isCapture)
         {
             // PSQT
-            int color = board.State.SideToMove ? 0 : 1;
+            // int color = board.State.SideToMove ? 0 : 1;
             int psqtDiff = Evaluation.GetPsqtScore(movingPieceType, color, move.Target) - Evaluation.GetPsqtScore(movingPieceType, color, move.Start);
             score += psqtDiff;
 
@@ -104,9 +115,30 @@ public class MoveOrdering
 
             // Killer
             // History
+
+            if (!inQSearch)
+            {
+                bool isKiller = ply < Constants.MaxKillerPly && KillerMoves[ply].Match(move);
+                if (isKiller)
+                {
+                    score += KillerMoveValue;
+                }
+
+                score += History[color, move.Start, move.Target] * 100;
+            }
         }
         
         return score;
+    }
+
+    public void ClearHistory()
+    {
+        History = new int[2, 64, 64];
+    }
+
+    public void ClearKillerMoves()
+    {
+        KillerMoves = new Killers[Constants.MaxKillerPly];
     }
 
     public static void Quicksort(ref MoveList values, int[] scores, int low, int high)
@@ -138,4 +170,21 @@ public class MoveOrdering
 
         return i + 1;
     }
+}
+
+public struct Killers
+{
+    public Move moveA;
+    public Move moveB;
+
+    public void Add(Move move)
+    {
+        if (move != moveA)
+        {
+            moveB = moveA;
+            moveA = move;
+        }
+    }
+
+    public bool Match(Move move) => move == moveA || move == moveB;
 }

@@ -25,8 +25,8 @@ public class MoveGen
     // If not in check, all bits are set to 1
     Bitboard checkRayBitmask;
 
-    Bitboard pinRays;
-    Bitboard notPinRays;
+    Bitboard pinned;
+    Bitboard notPinned;
     Bitboard enemyAttackMapNoPawns;
     Bitboard enemyAttackMap;
     Bitboard enemyPawnAttackMap;
@@ -270,7 +270,7 @@ public class MoveGen
 
     void GenerateKnightMoves(ref MoveList moves)
     {
-        Bitboard knights = board.BitboardSets[friendlyColor][PieceHelper.KNIGHT] & notPinRays;
+        Bitboard knights = board.BitboardSets[friendlyColor][PieceHelper.KNIGHT] & notPinned;
         Bitboard moveMask = emptyOrEnemySquares & checkRayBitmask & moveTypeMask;
 
         while (knights != 0)
@@ -294,10 +294,10 @@ public class MoveGen
         Bitboard orthogonalSliders = board.BitboardSets[friendlyColor][PieceHelper.ROOK] | board.BitboardSets[friendlyColor][PieceHelper.QUEEN];
         Bitboard diagonalSliders = board.BitboardSets[friendlyColor][PieceHelper.BISHOP] | board.BitboardSets[friendlyColor][PieceHelper.QUEEN];
 
-        if (inCheck)
+        if (inCheck) // If in check, pinned sliders cannot resolve the check
         {
-            orthogonalSliders &= notPinRays;
-            diagonalSliders &= notPinRays;
+            orthogonalSliders &= notPinned;
+            diagonalSliders &= notPinned;
         }
 
         while (orthogonalSliders != 0)
@@ -377,17 +377,18 @@ public class MoveGen
 
     bool IsPinned(Square sq)
     {
-        return pinRays.Contains(sq);
+        return pinned.Contains(sq);
     }
 
     // Refresh the class every execution
     public void Initialize()
     {
         currMoveIdx = 0;
-        inCheck = false;
-        inDoubleCheck = false;
-        checkRayBitmask = 0;
-        pinRays = 0;
+        inCheck = board.State.Checkers != 0;
+        inDoubleCheck = board.State.Checkers.MoreThanOne();
+        checkRayBitmask = board.State.CheckRay;
+        pinned = board.State.Pinned;
+        notPinned = ~pinned;
 
         isWhiteToMove = board.State.SideToMove;
         friendlyColor = PieceHelper.GetColor(isWhiteToMove);
@@ -442,102 +443,102 @@ public class MoveGen
     {
         GenerateSlidingAttackMap();
 
-        int startDirIndex = 0;
-        int endDirIndex = 8;
+        // int startDirIndex = 0;
+        // int endDirIndex = 8;
 
-        // Skip direction check (Pin / Check)
-        // There are no enemy queens
-        if (board.BitboardSets[enemyColor][PieceHelper.QUEEN] == 0)
-        {
-            startDirIndex = board.BitboardSets[enemyColor][PieceHelper.ROOK] != 0 ? 0 : 4;
-            endDirIndex = board.BitboardSets[enemyColor][PieceHelper.BISHOP] != 0 ? 8 : 4;
-        }
+        // // Skip direction check (Pin / Check)
+        // // There are no enemy queens
+        // if (board.BitboardSets[enemyColor][PieceHelper.QUEEN] == 0)
+        // {
+        //     startDirIndex = board.BitboardSets[enemyColor][PieceHelper.ROOK] != 0 ? 0 : 4;
+        //     endDirIndex = board.BitboardSets[enemyColor][PieceHelper.BISHOP] != 0 ? 8 : 4;
+        // }
 
-        for (int dirIndex = startDirIndex; dirIndex < endDirIndex; dirIndex++)
-        {
-            bool isDiagonal = dirIndex >= 4;
+        // for (int dirIndex = startDirIndex; dirIndex < endDirIndex; dirIndex++)
+        // {
+        //     bool isDiagonal = dirIndex >= 4;
 
-            Bitboard slider = isDiagonal ? enemyDiagSliders : enemyOrthoSliders;
+        //     Bitboard slider = isDiagonal ? enemyDiagSliders : enemyOrthoSliders;
 
-            // No enemy slider along this direction so skip it
-            if ((Bits.DirRayMasks[friendlyKingSquare][dirIndex] & slider) == 0)
-            {
-                continue;
-            }
+        //     // No enemy slider along this direction so skip it
+        //     if ((Bits.DirRayMasks[friendlyKingSquare][dirIndex] & slider) == 0)
+        //     {
+        //         continue;
+        //     }
 
-            int n = Bits.NumSquaresToEdge[friendlyKingSquare][dirIndex];
-            int directionOffset = Bits.DirectionOffsets[dirIndex];
-            bool isFriendlyPieceAlongRay = false;
+        //     int n = Bits.NumSquaresToEdge[friendlyKingSquare][dirIndex];
+        //     int directionOffset = Bits.DirectionOffsets[dirIndex];
+        //     bool isFriendlyPieceAlongRay = false;
 
-            // For each direction
-            // Does NOT include the king square
-            Bitboard rayMask = 0;
+        //     // For each direction
+        //     // Does NOT include the king square
+        //     Bitboard rayMask = 0;
 
-            for (int i = 1; i <= n; i++)
-            {
-                Square sq = (Square) (friendlyKingSquare + directionOffset * i);
-                rayMask.SetSquare(sq);
-                Piece pieceAt = board.At(sq);
+        //     for (int i = 1; i <= n; i++)
+        //     {
+        //         Square sq = (Square) (friendlyKingSquare + directionOffset * i);
+        //         rayMask.SetSquare(sq);
+        //         Piece pieceAt = board.At(sq);
 
-                if (pieceAt != PieceHelper.NONE)
-                {
-                    if (PieceHelper.IsColor(pieceAt, friendlyColor))
-                    {
-                        if (!isFriendlyPieceAlongRay)
-                        {
-                            // This piece might be pinned
-                            isFriendlyPieceAlongRay = true;
-                        }
-                        else
-                        {
-                            // This is the second friendly piece found; it cannot be pinned
-                            break;
-                        }
-                    }
-                    // Enemy spotted
-                    else
-                    {
-                        PieceType pieceType = PieceHelper.GetPieceType(pieceAt);
+        //         if (pieceAt != PieceHelper.NONE)
+        //         {
+        //             if (PieceHelper.IsColor(pieceAt, friendlyColor))
+        //             {
+        //                 if (!isFriendlyPieceAlongRay)
+        //                 {
+        //                     // This piece might be pinned
+        //                     isFriendlyPieceAlongRay = true;
+        //                 }
+        //                 else
+        //                 {
+        //                     // This is the second friendly piece found; it cannot be pinned
+        //                     break;
+        //                 }
+        //             }
+        //             // Enemy spotted
+        //             else
+        //             {
+        //                 PieceType pieceType = PieceHelper.GetPieceType(pieceAt);
 
-                        if ((isDiagonal && PieceHelper.IsDiagonal(pieceType)) || (!isDiagonal && PieceHelper.IsOrthogonal(pieceType)))
-                        {
-                            // Friendly piece blocks the check, so it is pinned
-                            if (isFriendlyPieceAlongRay)
-                            {
-                                // Includes the pinner
-                                // Does NOT include the king
-                                pinRays |= rayMask;
-                            }
-                            // No friendly piece blocking the check
-                            // So it is a check
-                            else
-                            {
-                                checkRayBitmask |= rayMask;
-                                inDoubleCheck = inCheck;
-                                inCheck = true;
-                            }
+        //                 if ((isDiagonal && PieceHelper.IsDiagonal(pieceType)) || (!isDiagonal && PieceHelper.IsOrthogonal(pieceType)))
+        //                 {
+        //                     // Friendly piece blocks the check, so it is pinned
+        //                     if (isFriendlyPieceAlongRay)
+        //                     {
+        //                         // Includes the pinner
+        //                         // Does NOT include the king
+        //                         pinRays |= rayMask;
+        //                     }
+        //                     // No friendly piece blocking the check
+        //                     // So it is a check
+        //                     else
+        //                     {
+        //                         checkRayBitmask |= rayMask;
+        //                         inDoubleCheck = inCheck;
+        //                         inCheck = true;
+        //                     }
 
-                            // Found a check or a pin
-                            break;
-                        }
-                        // The enemy piece is not able to move along this ray
-                        // So no check or pin
-                        else
-                        {
-                            break;
-                        }
-                    }
-                }
-            }
-            // If in double check, stop searching for pins / checks
-            // Since the king moves are the only legal ones
-            if (inDoubleCheck)
-            {
-                break;
-            }
-        }
+        //                     // Found a check or a pin
+        //                     break;
+        //                 }
+        //                 // The enemy piece is not able to move along this ray
+        //                 // So no check or pin
+        //                 else
+        //                 {
+        //                     break;
+        //                 }
+        //             }
+        //         }
+        //     }
+        //     // If in double check, stop searching for pins / checks
+        //     // Since the king moves are the only legal ones
+        //     if (inDoubleCheck)
+        //     {
+        //         break;
+        //     }
+        // }
 
-        notPinRays = ~pinRays;
+        // notPinRays = ~pinRays;
 
         Bitboard enemyKnightAttacks = 0;
         Bitboard knights = board.BitboardSets[enemyColor][PieceHelper.KNIGHT];
@@ -550,36 +551,36 @@ public class MoveGen
             Bitboard knightAttacks = Bits.KnightMovement[sq];
             enemyKnightAttacks |= knightAttacks;
 
-            if ((knightAttacks & board.BitboardSets[friendlyColor][PieceHelper.KING]) != 0)
-            {
-                inDoubleCheck = inCheck;
-                inCheck = true;
-                checkRayBitmask.SetSquare(sq);
-            }
+            // if ((knightAttacks & board.BitboardSets[friendlyColor][PieceHelper.KING]) != 0)
+            // {
+            //     inDoubleCheck = inCheck;
+            //     inCheck = true;
+            //     checkRayBitmask.SetSquare(sq);
+            // }
         }
 
         // Pawn attacks
         Bitboard enemyPawnBoard = board.BitboardSets[enemyColor][PieceHelper.PAWN];
         enemyPawnAttackMap = BitboardHelper.PawnAttacks(enemyPawnBoard, enemyColor);
 
-        if (enemyPawnAttackMap.Contains(friendlyKingSquare))
-        {
-            inDoubleCheck = inCheck;
-            inCheck = true;
+        // if (enemyPawnAttackMap.Contains(friendlyKingSquare))
+        // {
+        //     inDoubleCheck = inCheck;
+        //     inCheck = true;
 
-            Bitboard possiblePawnAttackOrigins = Bits.PawnAttacks[friendlyColor][friendlyKingSquare];
-            Bitboard pawnCheckMap = possiblePawnAttackOrigins & enemyPawnBoard;
-            checkRayBitmask |= pawnCheckMap;
-        }
+        //     Bitboard possiblePawnAttackOrigins = Bits.PawnAttacks[friendlyColor][friendlyKingSquare];
+        //     Bitboard pawnCheckMap = possiblePawnAttackOrigins & enemyPawnBoard;
+        //     checkRayBitmask |= pawnCheckMap;
+        // }
 
         Square enemyKingSquare = board.KingSquares[enemyColor];
 
         enemyAttackMapNoPawns = enemySlidingAttackMap | enemyKnightAttacks | Bits.KingMovement[enemyKingSquare];
         enemyAttackMap = enemyAttackMapNoPawns | enemyPawnAttackMap;
 
-        if (!inCheck)
-        {
-            checkRayBitmask = Bitboard.MaxValue;
-        }
+        // if (!inCheck)
+        // {
+        //     checkRayBitmask = Bitboard.MaxValue;
+        // }
     }
 }

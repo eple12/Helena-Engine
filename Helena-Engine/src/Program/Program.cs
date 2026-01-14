@@ -16,6 +16,9 @@ public static class Program
         Logger.LogLine("Initializing...");
         Initialize();
         Logger.LogLine("Done.");
+        Logger.LogLine();
+        Logger.LogLine("Type \"help\" for command information.");
+        Logger.LogLine();
 
         while (true)
         {
