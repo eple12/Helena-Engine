@@ -14,15 +14,18 @@ public class MoveOrdering
     public const int QueenPromotionCaptureBaseScore = GoodCaptureBaseScore + PromotionMoveScore;
     public const int GoodCaptureBaseScore = 1_048_576;
     public const int KillerMoveValue = 524_288;
+    public const int PawnForkMoveScore = 131_072;
+    public const int PawnAttackMoveScore = 65_536;
     public const int PromotionMoveScore = 32_768;
     public const int BadCaptureBaseScore = 16_384;
 
     // Negative value to make sure history moves doesn't reach other important moves
     public const int BaseMoveScore = int.MinValue / 2;
 
-
     public int[,,] History;
     public Killers[] KillerMoves;
+
+    int color;
 
     public MoveOrdering(Board _board, SEE _see)
     {
@@ -37,10 +40,10 @@ public class MoveOrdering
     // Returns the start/end index of SEE bad captures
     public (int, int) GetOrderedMoves(ref MoveList moves, Move lastIteration, bool inQSearch, int ply)
     {
+        color = board.State.SideToMove ? 0 : 1;
+
         GetScores(ref moves, lastIteration, inQSearch, ply);
         Quicksort(ref moves, moveScores, 0, moves.Length - 1);
-        // return moves;
-        // return moveScores[..moves.Length];
 
         if (inQSearch) {
             return (-1, -1);
@@ -102,10 +105,23 @@ public class MoveOrdering
         if (!inQSearch)
         {
             bool isKiller = ply < Constants.MaxKillerPly && KillerMoves[ply].Match(move);
-            return BaseMoveScore + (isKiller ? KillerMoveValue : 0) + History[board.State.SideToMove ? 0 : 1, move.Start, move.Target] * 100 + PSQT.ReadTableFromPiece(movingPieceType, move.Target, board.State.SideToMove);
+            int pawnAttack = 0;
+            if (movingPieceType == PieceHelper.PAWN)
+            {
+                Bitboard attackMask = Bits.PawnAttacks[color][move.Target] & board.BitboardSets[1 - color].All & ~board.BitboardSets[1 - color][PieceHelper.PAWN];
+                if (attackMask != 0)
+                {
+                    pawnAttack = PawnAttackMoveScore - BaseMoveScore; // Counter negative base score
+                    if (attackMask.MoreThanOne())
+                    {
+                        pawnAttack = PawnForkMoveScore - BaseMoveScore;
+                    }
+                }
+            }
+            return BaseMoveScore + (isKiller ? KillerMoveValue : 0) + History[color, move.Start, move.Target] * 100 + TunedEvaluation.ReadTableFromPiece(movingPieceType, move.Target, board.State.SideToMove) + pawnAttack;
         }
 
-        return BaseMoveScore + PSQT.ReadTableFromPiece(movingPieceType, move.Target, board.State.SideToMove);
+        return BaseMoveScore + TunedEvaluation.ReadTableFromPiece(movingPieceType, move.Target, board.State.SideToMove);
     }
 
     public void ClearHistory()

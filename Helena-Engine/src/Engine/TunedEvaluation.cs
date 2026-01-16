@@ -1,6 +1,7 @@
 namespace H.Engine;
 
 using S = TaperedScore;
+using H.Core;
 
 public static partial class TunedEvaluation
 {
@@ -80,4 +81,19 @@ public static partial class TunedEvaluation
     // Mopup
     public static readonly S CloserToEnemyKing = new S(0, 50);
     public static readonly S EnemyKingCorner = new S(0, 50);
+
+    public static readonly S[][] Tables = [
+        [],
+        PawnPsqt,
+        KnightPsqt,
+        BishopPsqt,
+        RookPsqt,
+        QueenPsqt,
+        KingPsqt
+    ];
+
+    public static int ReadTableFromPiece(Piece pieceType, Square square, bool white)
+    {
+        return Tables[pieceType][white ? SquareHelper.FlipRank(square) : square].Mid;
+    }
 }
