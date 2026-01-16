@@ -251,55 +251,64 @@ public class Engine
             return 0;
         }
 
-        moveOrdering.GetOrderedMoves(ref moves, isRoot ? bestMoveLastIteration : ttMove, false, plyFromRoot);
+        // SEE Bad Capture start/end index
+        // If there is no bad capture move, returns (-1, -1)
+        // In that case, start <= i <= end never satisfies
+        (int seePruningStart, int seePruningEnd) = moveOrdering.GetOrderedMoves(ref moves, isRoot ? bestMoveLastIteration : ttMove, false, plyFromRoot);
         Move bestMoveThisPosition = moves[0];
 
-        int extension = 0;
         if (inCheck)
         {
-            extension = 1;
+            depth++;
         }
 
         for (int i = 0; i < moves.Length; i++)
         {
+            bool isCapture = MoveFlag.IsCapture(moves[i].Flag);
             board.MakeMove(moves[i]);
-            int score;
+            
+            int score = 0;
+            int reduction = 0;
+            bool givesCheck = board.InCheck();
 
-            // Principal Variation Search (PVS)
-            if (i == 0 || depth <= 3) // First move is assumed to be the best (PV-Node)
+            if (
+                depth >= Constants.LMR_MinDepth && i >= (isPv ? Constants.LMR_MinFullSearchMoves : Constants.LMR_MinFullSearchMoves - 1)
+                && !isCapture
+            )
             {
-                // Search the first move with a full window
-                score = -Negamax(depth - 1 + extension, plyFromRoot + 1, -beta, -alpha);
+                reduction = Constants.LMR_Reductions[depth][i];
+
+                if (isPv)
+                {
+                    --reduction;
+                }
+                if (givesCheck)
+                {
+                    --reduction;
+                }
+
+                reduction = Math.Clamp(reduction, 0, depth - 1);
             }
-            else // Subsequent moves are assumed to be worse (Non-PV nodes)
+
+            // SEE Reduction
+            // Improvements: Don't copy move scores, maybe just return the range of bad capture moves
+            if (
+                !inCheck && i >= seePruningStart && i <= seePruningEnd
+            )
             {
-                // --- Null Window Search (with LMR) ---
-                // First, try to prove the move is bad with a quick search.
-                
-                bool isQuietMove = !MoveFlag.IsCapture(moves[i].Flag) && !MoveFlag.IsPromotion(moves[i].Flag);
-                if (i >= 2 && isQuietMove && !inCheck) // Reduction
-                {
-                    int reduction = 1;
-                    if (i > 5) reduction = depth / 3;
+                reduction += Constants.SEE_BadCaptureReduction;
+                reduction = Math.Clamp(reduction, 0, depth - 1);
+            }
 
-                    if (isPv) reduction--;
+            score = -Negamax(depth - 1 - reduction, plyFromRoot+ 1, -alpha - 1, -alpha);
 
-                    // Search with reduced depth and a null window
-                    score = -Negamax(depth - 1 - reduction, plyFromRoot + 1, -alpha - 1, -alpha);
-                }
-                else
-                {
-                    // For non-reduced moves, still use a null window search
-                    score = -Negamax(depth - 1 + extension, plyFromRoot + 1, -alpha - 1, -alpha);
-                }
+            if (score > alpha && reduction > 0) {
+                score = -Negamax(depth - 1, plyFromRoot + 1, -alpha - 1, -alpha);
+            }
 
-                // --- Re-Search ---
-                // If the null-window search revealed the move is better than alpha,
-                // it's worth a full search to get its true score.
-                if (score > alpha && score < beta)
-                {
-                    score = -Negamax(depth - 1 + extension, plyFromRoot + 1, -beta, -alpha);
-                }
+            if (score > alpha && score < beta)
+            {
+                score = -Negamax(depth - 1, plyFromRoot + 1, -beta, -alpha);
             }
             
             board.UnmakeMove(moves[i]);
@@ -313,7 +322,7 @@ public class Engine
             {
                 tt.StoreEval(depth, plyFromRoot, beta, TT.Beta, moves[i]);
 
-                if (!MoveFlag.IsCapture(moves[i].Flag))
+                if (!isCapture)
                 {
                     if (plyFromRoot < Constants.MaxKillerPly)
                     {

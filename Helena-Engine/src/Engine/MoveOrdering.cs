@@ -20,14 +20,9 @@ public class MoveOrdering
     // Negative value to make sure history moves doesn't reach other important moves
     public const int BaseMoveScore = int.MinValue / 2;
 
-    ulong enemyPawnAttackMap;
-    ulong enemyAttackMapNoPawn;
-    ulong enemyAttackMap;
 
     public int[,,] History;
     public Killers[] KillerMoves;
-
-    int color;
 
     public MoveOrdering(Board _board, SEE _see)
     {
@@ -39,19 +34,25 @@ public class MoveOrdering
         KillerMoves = new Killers[Constants.MaxKillerPly];
     }
 
-    public MoveList GetOrderedMoves(ref MoveList moves, Move lastIteration, bool inQSearch, int ply)
+    // Returns the start/end index of SEE bad captures
+    public (int, int) GetOrderedMoves(ref MoveList moves, Move lastIteration, bool inQSearch, int ply)
     {
-        // We still have these values in MoveGen since we call MoveOrdering right after MoveGen
-        enemyPawnAttackMap = board.MoveGenerator.EnemyPawnAttackMap();
-        enemyAttackMapNoPawn = board.MoveGenerator.EnemyAttackMapNoPawn();
-        enemyAttackMap = board.MoveGenerator.EnemyAttackMap();
-
-        color = board.State.SideToMove ? 0 : 1;
-
         GetScores(ref moves, lastIteration, inQSearch, ply);
         Quicksort(ref moves, moveScores, 0, moves.Length - 1);
+        // return moves;
+        // return moveScores[..moves.Length];
 
-        return moves;
+        if (inQSearch) {
+            return (-1, -1);
+        }
+
+        int start = FindFirstLE(moveScores, moves.Length, PromotionMoveScore - 1);
+        int end = FindLastGE(moveScores, moves.Length, BadCaptureBaseScore);
+
+        if (start == -1 || end == -1 || start > end) {
+            return (-1, -1);
+        }
+        return (start, end);
     }
 
     void GetScores(ref MoveList moves, Move lastIteration, bool inQSearch, int ply)
@@ -126,7 +127,6 @@ public class MoveOrdering
             Quicksort(ref values, scores, pivotIndex + 1, high);
         }
     }
-
     static int Partition(ref MoveList values, int[] scores, int low, int high)
     {
         int pivotScore = scores[high];
@@ -146,6 +146,53 @@ public class MoveOrdering
 
         return i + 1;
     }
+
+    static int FindFirstLE(int[] arr, int N, int b)
+    {
+        int lo = 0, hi = N - 1;
+        int result = -1;
+
+        while (lo <= hi)
+        {
+            int mid = (lo + hi) >> 1;
+
+            if (arr[mid] <= b)
+            {
+                result = mid;
+                hi = mid - 1;
+            }
+            else
+            {
+                lo = mid + 1;
+            }
+        }
+
+        return result;
+    }
+    static int FindLastGE(int[] arr, int N, int a)
+    {
+        int lo = 0, hi = N - 1;
+        int result = -1;
+
+        while (lo <= hi)
+        {
+            int mid = (lo + hi) >> 1;
+
+            if (arr[mid] >= a)
+            {
+                result = mid;
+                lo = mid + 1;
+            }
+            else
+            {
+                hi = mid - 1;
+            }
+        }
+
+        return result;
+    }
+
+
 
     // [Moving PieceType][Captured PieceType]
     static readonly int[][] MVVLVA = [

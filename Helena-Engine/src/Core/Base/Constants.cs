@@ -18,5 +18,28 @@ public static class Constants
     public const int AspirationWindowBase = 20;
     public const int MaxAspirations = 3;
 
+    public const int LMR_MinDepth = 3;
+    public const int LMR_MinFullSearchMoves = 3;
+    public const double LMR_Divisor = 3.49;
+    public const double LMR_Base = 0.75;
+    public static readonly int[][] LMR_Reductions = new int[MAX_DEPTH][];
+
+    public const int SEE_BadCaptureReduction = 2;
+
     public const int MaxKillerPly = 32;
+
+    static Constants()
+    {
+        for (int searchDepth = 1; searchDepth < MAX_DEPTH; ++searchDepth) {
+            LMR_Reductions[searchDepth] = new int[MAX_MOVES];
+            
+            // movesSearchedCount > 0 or we wouldn't be applying LMR
+            for (int movesSearchedCount = 1; movesSearchedCount < MAX_MOVES; ++movesSearchedCount)
+            {
+                LMR_Reductions[searchDepth][movesSearchedCount] = Convert.ToInt32(Math.Round(
+                    LMR_Base + (Math.Log(movesSearchedCount) * Math.Log(searchDepth) / LMR_Divisor)
+                ));
+            }
+        }
+    }
 }
