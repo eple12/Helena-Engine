@@ -265,7 +265,7 @@ public class Board
             State.HalfmoveClock++;
         }
 
-        CalculatePinData();
+        CalculatePinCheckData();
     }
 
     public void UnmakeMove(Move move)
@@ -453,7 +453,7 @@ public class Board
 // endregion
 
     // Calculate Pin & Checker data for MoveGen & SEE
-    void CalculatePinData()
+    void CalculatePinCheckData()
     {
         Color us = PieceHelper.GetColor(State.SideToMove);
         Color them = PieceHelper.GetColor(!State.SideToMove);
@@ -552,7 +552,7 @@ public class Board
         State.Key = Zobrist.GetZobristKey(this);
 
         // Update Checkers and Pins
-        CalculatePinData();
+        CalculatePinCheckData();
 
         void ReadFenString()
         {
@@ -679,7 +679,7 @@ public class Board
 
     public void Test()
     {
-        CalculatePinData();
+        CalculatePinCheckData();
         // MoveList moves = MoveGenerator.GenerateMoves();
     }
 

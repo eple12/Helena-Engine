@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Net.Http.Headers;
 using System.Transactions;
 using H.Core;
 using H.Engine;
@@ -350,14 +351,24 @@ public static class UCI
         // System.Console.WriteLine(Perft.GoPerft(4));
         // Perft.GoPositionAllDepth(in Perft.Perfts[5]);
 
-        var sw = Stopwatch.StartNew();
+        // var sw = Stopwatch.StartNew();
 
-        for (int i = 0; i < 1000000; i++)
+        // for (int i = 0; i < 1000000; i++)
+        // {
+        //     MainBoard.Test();
+        // }
+
+        // sw.Stop();
+        // System.Console.WriteLine(sw.ElapsedMilliseconds);
+
+        SEE see = new (MainBoard);
+        // see.HasPositiveScore();
+        MoveList moves = MainBoard.MoveGenerator.GenerateMoves();
+        foreach (Move move in moves)
         {
-            MainBoard.Test();
+            System.Console.WriteLine($"{move.Notation}: {see.HasPositiveScore(move, 0)}");
         }
 
-        sw.Stop();
-        System.Console.WriteLine(sw.ElapsedMilliseconds);
+        // see.HasPositiveScore(new Move(SquareHelper.D1, SquareHelper.G4));
     }
 }
