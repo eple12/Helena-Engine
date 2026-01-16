@@ -35,9 +35,8 @@ public class Engine
         board = _board;
         tt = new(_board);
 
-        moveOrdering = new(_board);
         see = new(board);
-
+        moveOrdering = new(_board, see);
         pv = new();
 
         OnSearchComplete = () => {};
@@ -236,7 +235,9 @@ public class Engine
             return QuiescenceSearch(alpha, beta);
         }
 
-        MoveList moves = board.MoveGenerator.GenerateMoves();
+        // MoveList moves = board.MoveGenerator.GenerateMoves();
+        MoveList moves = stackalloc Move[Constants.MAX_MOVES];
+        board.MoveGenerator.GenerateMoves(ref moves, capturesOnly: false);
         bool inCheck = board.InCheck();
 
         if (moves.Length == 0)
@@ -368,7 +369,9 @@ public class Engine
             alpha = eval;
         }
 
-        MoveList moves = board.MoveGenerator.GenerateMoves(capturesOnly: true);
+        // MoveList moves = board.MoveGenerator.GenerateMoves(capturesOnly: true);
+        MoveList moves = stackalloc Move[128];
+        board.MoveGenerator.GenerateMoves(ref moves, capturesOnly: true);
         moveOrdering.GetOrderedMoves(ref moves, Move.NullMove, true, 0);
 
         for (int i = 0; i < moves.Length; i++)

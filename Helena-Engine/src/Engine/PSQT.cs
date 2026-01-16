@@ -1,5 +1,6 @@
 namespace H.Engine;
 
+using H.Core;
 using S = TaperedScore;
 
 public static class PSQT
@@ -76,4 +77,19 @@ public static class PSQT
         new S( 20, -30), new S( 20, -25), new S( -5,   0), new S( -5,   0), new S( -5,   0), new S( -5,   0), new S( 20, -25), new S( 20, -30), 
         new S( 20, -50), new S( 30, -30), new S( 10, -30), new S(  0, -30), new S(  0, -30), new S( 10, -30), new S( 30, -30), new S( 20, -50)
     };
+
+    public static readonly S[][] Tables = [
+        [],
+        Pawns,
+        Knights,
+        Bishops,
+        Rooks,
+        Queens,
+        King
+    ];
+
+    public static int ReadTableFromPiece(Piece pieceType, Square square, bool white)
+    {
+        return Tables[pieceType][white ? SquareHelper.FlipRank(square) : square][0];
+    }
 }

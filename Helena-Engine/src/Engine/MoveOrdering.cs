@@ -5,14 +5,20 @@ using H.Core;
 public class MoveOrdering
 {
     Board board;
+    SEE see;
     int[] moveScores;
 
+    static readonly int[] MaterialValues = EvaluationConstants.AbsoluteMaterial;
+
     public const int HashMoveScore = 2_097_152;
-    // public const int QueenPromotionCaptureBaseScore = GoodCaptureBaseScore + PromotionMoveScore;
+    public const int QueenPromotionCaptureBaseScore = GoodCaptureBaseScore + PromotionMoveScore;
     public const int GoodCaptureBaseScore = 1_048_576;
     public const int KillerMoveValue = 524_288;
     public const int PromotionMoveScore = 32_768;
     public const int BadCaptureBaseScore = 16_384;
+
+    // Negative value to make sure history moves doesn't reach other important moves
+    public const int BaseMoveScore = int.MinValue / 2;
 
     ulong enemyPawnAttackMap;
     ulong enemyAttackMapNoPawn;
@@ -23,9 +29,10 @@ public class MoveOrdering
 
     int color;
 
-    public MoveOrdering(Board _board)
+    public MoveOrdering(Board _board, SEE _see)
     {
         board = _board;
+        see = _see;
         moveScores = new int[Constants.MAX_MOVES];
 
         History = new int[2, 64, 64];
@@ -64,71 +71,40 @@ public class MoveOrdering
             return HashMoveScore;
         }
 
-        int score = 0;
-        ushort flag = move.Flag;
-        
-        PieceType movingPieceType = PieceHelper.GetPieceType(board.At(move.Start));
-        PieceType capturedPieceType = PieceHelper.GetPieceType(board.At(move.Target));
+        Piece movingPieceType = PieceHelper.GetPieceType(board.At(move.Start));
+        Piece capturedPieceType = PieceHelper.GetPieceType(board.At(move.Target));
 
-        bool isCapture = MoveFlag.IsCapture(flag);
+        int capturePieceValue = MaterialValues[capturedPieceType];
 
-        // MVV LVA
-        if (isCapture)
+        // If Queen promotion
+        if (move.Flag == MoveFlag.QPromCapture)
         {
-            int captureDelta = Evaluation.GetMaterialValue(capturedPieceType) - Evaluation.GetMaterialValue(movingPieceType);
-            
-            // Requires SEE for better insight
-            if (enemyAttackMap.Contains(move.Target))
-            {
-                score += (captureDelta >= 0 ? GoodCaptureBaseScore : BadCaptureBaseScore) + captureDelta;
-            }
-            else
-            {
-                score += GoodCaptureBaseScore + captureDelta;
-            }
+            return QueenPromotionCaptureBaseScore + capturePieceValue;
         }
-        if (MoveFlag.IsPromotion(flag))
+        if (move.Flag == MoveFlag.QProm)
         {
-            score += PromotionMoveScore;
-
-            PieceType promType = MoveFlag.GetPromType(flag);
-            int promValue = Evaluation.GetMaterialValue(promType);
-
-            score += promValue;
+            return PromotionMoveScore + (see.HasPositiveScore(move) ? GoodCaptureBaseScore : BadCaptureBaseScore);
         }
-        else if (!isCapture)
+
+        if (MoveFlag.IsCapture(move.Flag))
         {
-            // PSQT
-            // int color = board.State.SideToMove ? 0 : 1;
-            int psqtDiff = Evaluation.GetPsqtScore(movingPieceType, color, move.Target) - Evaluation.GetPsqtScore(movingPieceType, color, move.Start);
-            score += psqtDiff;
+            int baseCapture = (move.Flag == MoveFlag.EP || MoveFlag.IsPromotion(move.Flag) || see.IsGoodCapture(move)) ? GoodCaptureBaseScore : BadCaptureBaseScore;
 
-            // Enemy Attacks
-            if (enemyPawnAttackMap.Contains(move.Target))
-            {
-                score -= 200;
-            }
-            else if (enemyAttackMapNoPawn.Contains(move.Target))
-            {
-                score -= 100;
-            }
-
-            // Killer
-            // History
-
-            if (!inQSearch)
-            {
-                bool isKiller = ply < Constants.MaxKillerPly && KillerMoves[ply].Match(move);
-                if (isKiller)
-                {
-                    score += KillerMoveValue;
-                }
-
-                score += History[color, move.Start, move.Target] * 100;
-            }
+            return baseCapture + MVVLVA[movingPieceType][capturedPieceType];
         }
-        
-        return score;
+
+        if (MoveFlag.IsPromotion(move.Flag))
+        {
+            return PromotionMoveScore;
+        }
+
+        if (!inQSearch)
+        {
+            bool isKiller = ply < Constants.MaxKillerPly && KillerMoves[ply].Match(move);
+            return BaseMoveScore + (isKiller ? KillerMoveValue : 0) + History[board.State.SideToMove ? 0 : 1, move.Start, move.Target] * 100 + PSQT.ReadTableFromPiece(movingPieceType, move.Target, board.State.SideToMove);
+        }
+
+        return BaseMoveScore + PSQT.ReadTableFromPiece(movingPieceType, move.Target, board.State.SideToMove);
     }
 
     public void ClearHistory()
@@ -170,6 +146,18 @@ public class MoveOrdering
 
         return i + 1;
     }
+
+    // [Moving PieceType][Captured PieceType]
+    static readonly int[][] MVVLVA = [
+    //    -     P     N     B     R      Q 
+        [ 0,    0,    0,    0,    0,     0 ], // NONE
+        [ 0, 1500, 4000, 4500, 5500, 11500 ], // PAWN
+        [ 0, 1400, 3900, 4400, 5400, 11400 ], // KNIGHT
+        [ 0, 1300, 3800, 4300, 5300, 11300 ], // BISHOP
+        [ 0, 1200, 3700, 4200, 5200, 11200 ], // ROOK
+        [ 0, 1100, 3600, 4100, 5100, 11100 ], // QUEEN
+        [ 0, 1000, 3500, 4000, 5000, 11000 ]  // KING
+    ];
 }
 
 public struct Killers

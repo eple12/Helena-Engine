@@ -70,7 +70,6 @@ public class MoveGen
         return enemyAttackMap;
     }
 
-    // QSearch will be implemented in the future
     public MoveList GenerateMoves(bool capturesOnly = false)
     {
         MoveList moves = new Move[MAX_MOVES];
@@ -79,13 +78,24 @@ public class MoveGen
 
         Initialize();
 
-        GenerateMoves(ref moves);
+        Generate(ref moves);
+        
+        moves = moves[..currMoveIdx];
+        return moves;
+    }
+    public MoveList GenerateMoves(ref MoveList moves, bool capturesOnly = false)
+    {
+        generateQuietMoves = !capturesOnly;
+
+        Initialize();
+
+        Generate(ref moves);
         
         moves = moves[..currMoveIdx];
         return moves;
     }
 
-    void GenerateMoves(ref MoveList moves)
+    void Generate(ref MoveList moves)
     {
         GenerateKingMoves(ref moves);
 

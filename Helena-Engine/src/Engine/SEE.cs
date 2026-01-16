@@ -9,7 +9,7 @@ public class SEE
 {
     // [Type]
     // We only determine if a capture is "good" or "bad". We DO NOT evaluate them. So we just use constants, not tapered/tuned evaluation
-    static readonly int[] MaterialValues = { 0, 100, 300, 300, 500, 900, 0 };
+    static readonly int[] MaterialValues = EvaluationConstants.AbsoluteMaterial;
 
     Board board;
 

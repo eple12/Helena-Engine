@@ -5,7 +5,7 @@ using H.Core;
 
 public static class EvaluationConstants
 {
-    
+    // Outdated
     public static readonly S[] MaterialValues = {
         new S(100, 100), new S(300, 300), new S(320, 320), new S(500, 500), new S(900, 900)
     };
@@ -30,6 +30,8 @@ public static class EvaluationConstants
     // public static readonly int[] AttackerWeight = { 0, 0, 2, 2, 3, 5, 0 }; // None, Pawn, Knight, Bishop, Rook, Queen, King
     // public const int KingSafetyPenaltyTableLength = 100;
     // public static readonly S[] KingSafetyPenaltyTable = new S[KingSafetyPenaltyTableLength];
+
+    public static readonly int[] AbsoluteMaterial = { 0, 100, 300, 300, 500, 900, 0 };
 
     // Evaluation precomputed data
     public static readonly int[,] DistanceFromSquare;
