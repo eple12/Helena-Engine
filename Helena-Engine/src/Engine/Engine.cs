@@ -406,7 +406,7 @@ public class Engine
             }
             if (score > alpha)
             {
-                alpha = eval;
+                alpha = score;
             }
         }
 
