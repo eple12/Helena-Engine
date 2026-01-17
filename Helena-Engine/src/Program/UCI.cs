@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Net.Http.Headers;
 using System.Transactions;
+using H.Book;
 using H.Core;
 using H.Engine;
 
@@ -40,6 +41,11 @@ public readonly struct ProtocolCommand
 
     public const string UCI = "uci";
     public const string ISREADY = "isready";
+
+    public const string BOOK = "book";
+    public const string BOOK_PARSE = "parse";
+    public const string BOOK_TOGGLE = "toggle";
+    public const string BOOK_SHOW = "show";
 }
 
 public static class UCI
@@ -110,6 +116,10 @@ public static class UCI
                 System.Console.WriteLine("readyok");
                 break;
 
+            case ProtocolCommand.BOOK:
+                Book(commandParts[1..]);
+                break;
+
             default:
                 break;
         }
@@ -155,6 +165,9 @@ public static class UCI
         System.Console.WriteLine();
         System.Console.WriteLine("eval");
         System.Console.WriteLine("    - Perform static evaluation and print out the eval");
+        System.Console.WriteLine();
+        System.Console.WriteLine("book <toggle | show | parse>");
+        System.Console.WriteLine("    - Manage opening book");
         System.Console.WriteLine();
         System.Console.WriteLine();
 
@@ -329,6 +342,37 @@ public static class UCI
         }
 
         Main.MainBoard.MakeMove(m);
+    }
+
+    static void Book(string[] subcommands)
+    {
+        string prefix = subcommands[0];
+        if (prefix == ProtocolCommand.BOOK_PARSE)
+        {
+            BookParser.Parse();
+        }
+        else if (prefix == ProtocolCommand.BOOK_SHOW)
+        {
+            ulong key = MainBoard.State.Key;
+            System.Console.WriteLine($"Key: {key}");
+            BookPosition bp = H.Book.Book.TryGetBookPosition(MainBoard.State.Key);
+            if (bp.IsEmpty())
+            {
+                System.Console.WriteLine("The book is empty.");
+            }
+            else
+            {
+                for (int i = 0; i < bp.Moves.Count; i++)
+                {
+                    System.Console.WriteLine($"{bp.Moves[i].Notation}: {bp.Num[i]}");
+                }
+            }
+        }
+        else if (prefix == ProtocolCommand.BOOK_TOGGLE)
+        {
+            engine.ToggleBook();
+            System.Console.WriteLine($"Opening book {(engine.GetBookToggle() ? "enabled" : "disabled")}.");
+        }
     }
 
     static void Test()

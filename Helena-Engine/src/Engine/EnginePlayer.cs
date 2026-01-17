@@ -59,6 +59,15 @@ public class EnginePlayer
         return (int) thinkTimeDouble;
     }
 
+    public void ToggleBook()
+    {
+        engine.ToggleBook();
+    }
+    public bool GetBookToggle()
+    {
+        return engine.GetBookToggle();
+    }
+
     public void Cancel()
     {
         engine.CancelSearch();

@@ -126,7 +126,9 @@ public class Board
         }
 
         // En passant Square
-        if (flag == MoveFlag.PawnTwo)
+        if (flag == MoveFlag.PawnTwo &&
+            ((Bits.Ranks[SquareHelper.GetRank(target)] & Bits.AdjacentFiles[SquareHelper.GetFile(start)] & BitboardSets[enemyColor][PieceHelper.PAWN]) != 0) // If there's at least one enemy pawn that can EP
+        )
         {
             // The stm hasn't been switched yet.
             // If white pawn was pushed two squares forward, then it is the square right above the starting square

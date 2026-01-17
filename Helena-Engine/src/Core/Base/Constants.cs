@@ -9,7 +9,6 @@ public static class Constants
 
     public const int ZOBRIST_SEED = 29426028;
 
-
     // Engine Configs
     public const int TT_SIZE_MB = 64;
     public const int MAX_DEPTH = 99;

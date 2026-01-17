@@ -11,6 +11,8 @@ public class Engine
     TT tt;
     PvTable pv;
 
+    bool useBook = true;
+
     // Field
     bool isSearching = false;
     // 0 for false, 1 for true. Used with Interlocked to ensure atomic operations.
@@ -46,6 +48,15 @@ public class Engine
     
     void Search(int maxDepth)
     {
+        if (useBook)
+        {
+            Move bookMove = TryGetBookMove();
+            if (bookMove != Move.NullMove)
+            {
+                System.Console.WriteLine($"bestmove {bookMove.Notation}");
+                return;
+            }
+        }
         IDDFS(maxDepth);
     }
     void ResetField()
@@ -81,7 +92,7 @@ public class Engine
         }
 
         pv.ClearAll();
-        
+
         int alpha = -INF;
         int beta = INF;
 
@@ -402,6 +413,19 @@ public class Engine
         return alpha;
     }
 
+    Move TryGetBookMove()
+    {
+        return Book.Book.GetRandomMove(board.State.Key);
+    }
+
+    public void ToggleBook()
+    {
+        useBook = !useBook;
+    }
+    public bool GetBookToggle()
+    {
+        return useBook;
+    }
     public bool IsSearching()
     {
         return isSearching;

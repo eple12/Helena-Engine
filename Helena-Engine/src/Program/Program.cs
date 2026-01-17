@@ -38,6 +38,7 @@ public static class Program
     public static void Initialize()
     {
         H.Program.Main.MainBoard.LoadPositionFromFEN(UCI.STARTPOS_FEN);
+        H.Book.Book.GenerateTable();
     }
 
     public const string LOGO =

@@ -25,8 +25,8 @@ namespace Helena
         constexpr static bool enable_qsearch = false;
         constexpr static bool filter_in_check = true; // good practice to filter noisy positions
         constexpr static tune_t initial_learning_rate = 1;
-        constexpr static int32_t learning_rate_drop_interval = 10000;
-        constexpr static tune_t learning_rate_drop_ratio = 1;
+        constexpr static int32_t learning_rate_drop_interval = 100;
+        constexpr static tune_t learning_rate_drop_ratio = 0.9;
         constexpr static int32_t data_load_print_interval = 10000;
 
         static parameters_t get_initial_parameters();
