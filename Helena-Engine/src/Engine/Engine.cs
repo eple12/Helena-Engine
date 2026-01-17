@@ -268,7 +268,7 @@ public class Engine
         (int seePruningStart, int seePruningEnd) = moveOrdering.GetOrderedMoves(ref moves, isRoot ? bestMoveLastIteration : ttMove, false, plyFromRoot);
         Move bestMoveThisPosition = moves[0];
 
-        if (inCheck)
+        if (inCheck && depth < Constants.MAX_DEPTH)
         {
             depth++;
         }

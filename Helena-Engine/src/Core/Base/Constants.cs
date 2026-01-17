@@ -21,7 +21,7 @@ public static class Constants
     public const int LMR_MinFullSearchMoves = 3;
     public const double LMR_Divisor = 3.49;
     public const double LMR_Base = 0.75;
-    public static readonly int[][] LMR_Reductions = new int[MAX_DEPTH][];
+    public static readonly int[][] LMR_Reductions = new int[MAX_DEPTH + 1][];
 
     public const int SEE_BadCaptureReduction = 2;
 
@@ -29,7 +29,7 @@ public static class Constants
 
     static Constants()
     {
-        for (int searchDepth = 1; searchDepth < MAX_DEPTH; ++searchDepth) {
+        for (int searchDepth = 1; searchDepth < MAX_DEPTH + 1; ++searchDepth) {
             LMR_Reductions[searchDepth] = new int[MAX_MOVES];
             
             // movesSearchedCount > 0 or we wouldn't be applying LMR
