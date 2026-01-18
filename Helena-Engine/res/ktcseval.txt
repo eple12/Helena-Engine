@@ -1,0 +1,586 @@
+namespace H.Engine;
+
+using H.Core;
+using H.Program;
+
+// Knight-To-C-Sharp-UCI Evaluation - Ported with all constants
+public static class KTCSEval
+{
+    const int MATE_EVAL = 99999;
+
+    static Board board = Main.MainBoard;
+
+    // KTCS Evaluation Constants
+    struct KTScore
+    {
+        int mg, eg;
+        public KTScore(int mg, int eg)
+        {
+            this.mg = mg;
+            this.eg = eg;
+        }
+
+        // phase => 0 ~ 256
+        public readonly int this[int phase]
+        {
+            get
+            {
+                if (phase == 0)
+                {
+                    return mg;
+                }
+                else if (phase == 256)
+                {
+                    return eg;
+                }
+
+                return (mg * (256 - phase) + eg * phase) >> 8;
+            }
+        }
+    }
+    static KTScore S(int mg, int eg) => new(mg, eg);
+
+    // Material Values from KTCS
+    static readonly KTScore[] MaterialValues = { S(101, 149), S(472, 557), S(441, 516), S(522, 904), S(1433, 1819) };
+
+    // Piece Mobility
+    static readonly KTScore PieceMobilityPerSquare = S(8, 6);
+
+    // Outpost
+    static readonly KTScore OutpostBonus = S(23, 29);
+
+    // Mop-Up
+    static readonly KTScore CloserToEnemyKing = S(1, -4);
+    static readonly KTScore EnemyKingCorner = S(-13, 14);
+    static readonly KTScore EnemyKingFriendlyBishopSquare = S(0, 0);
+
+    // Open File
+    static readonly KTScore RookOnOpenFileBonus = S(39, 7);
+    static readonly KTScore RookOnSemiOpenFileBonus = S(16, 6);
+
+    // Pawn structure
+    static readonly KTScore[] PassedPawnBonus =
+    { S(0, 0), S(99, 256), S(80, 194), S(19, 101), S(-24, 64), S(-19, 22), S(-12, 14), S(15, 15) };
+    static readonly KTScore[] IsolatedPawnPenaltyByCount =
+    { S(-15, -18), S(2, 4), S(24, 26), S(64, 44), S(85, 72), S(77, 122), S(118, 157), S(132, 197), S(75, 74) };
+
+    // King Safety
+    static readonly KTScore KingOpenFilePenalty = S(-68, 33);
+    static readonly KTScore KingSemiOpenFilePenalty = S(-18, 42);
+    static readonly KTScore KingShieldBonus = S(14, 10);
+
+    // Piece Square Tables from KTCS
+    static readonly KTScore[] PawnPsqt = {
+        S(0, 0), S(0, 0), S(0, 0), S(0, 0), S(0, 0), S(0, 0), S(0, 0), S(0, 0),
+        S(52, 84), S(60, 64), S(74, 94), S(45, 64), S(72, 78), S(24, 56), S(74, 97), S(29, 37),
+        S(30, 54), S(20, 35), S(35, 50), S(31, 32), S(27, 44), S(27, 27), S(16, 37), S(19, 38),
+        S(10, 27), S(21, 29), S(3, 34), S(46, 18), S(14, 27), S(27, 4), S(-5, 33), S(25, 4),
+        S(7, 24), S(12, 12), S(4, 33), S(26, 12), S(21, 10), S(8, 7), S(1, -1), S(9, 12),
+        S(8, 2), S(9, 19), S(8, 14), S(2, 12), S(4, 10), S(-4, -9), S(3, 7), S(7, -8),
+        S(8, 16), S(15, 8), S(15, 21), S(-10, 14), S(-11, 6), S(11, 1), S(15, 1), S(7, 10),
+        S(13, 5), S(6, 14), S(6, 10), S(7, 14), S(9, 11), S(12, 7), S(12, 13), S(13, 7)
+    };
+    static readonly KTScore[] KnightPsqt = {
+        S(96, -10), S(-110, -61), S(28, -8), S(-47, -26), S(-1, -12), S(-22, -34), S(-38, -36), S(-40, -66),
+        S(-16, -26), S(-25, -36), S(22, -2), S(-26, -24), S(24, 17), S(-21, -43), S(0, -16), S(-30, -55),
+        S(-15, -30), S(1, -18), S(7, 4), S(22, -8), S(21, 2), S(19, -2), S(5, -3), S(-14, -31),
+        S(-37, -26), S(26, -7), S(4, 12), S(37, -6), S(10, 23), S(35, -11), S(12, 9), S(-18, -38),
+        S(-26, -17), S(6, -8), S(16, 5), S(28, 7), S(21, -1), S(24, 7), S(3, -8), S(-16, -21),
+        S(-12, -26), S(7, 7), S(14, 10), S(21, -4), S(23, 12), S(12, -8), S(8, 11), S(-25, -32),
+        S(-35, -29), S(-10, -16), S(9, -4), S(6, -4), S(10, -4), S(2, 0), S(-7, -15), S(-34, -26),
+        S(-44, -40), S(-33, -26), S(-21, -19), S(-18, -23), S(-18, -17), S(-17, -23), S(-29, -20), S(-39, -36)
+    };
+    static readonly KTScore[] BishopPsqt = {
+        S(38, 2), S(-27, -6), S(19, 8), S(-2, -14), S(-8, -6), S(0, -26), S(14, 4), S(-25, -36),
+        S(12, -12), S(-26, -24), S(24, 17), S(-21, -43), S(20, 4), S(10, -15), S(15, 0), S(-9, -28),
+        S(-13, -16), S(7, -23), S(11, -8), S(19, -2), S(15, 7), S(21, 4), S(-7, 4), S(11, -22),
+        S(-21, -13), S(22, -21), S(-5, 8), S(30, -16), S(17, 14), S(17, -3), S(9, 18), S(-4, -18),
+        S(-9, -20), S(8, -13), S(11, -11), S(19, 2), S(13, 2), S(24, 19), S(18, 4), S(-8, -8),
+        S(-6, -10), S(16, -9), S(18, 7), S(12, -8), S(13, 16), S(15, 8), S(15, 21), S(0, -6),
+        S(-1, -14), S(6, -4), S(5, -9), S(2, 0), S(13, 5), S(6, 14), S(11, 15), S(-3, 4),
+        S(-11, -9), S(2, -3), S(2, 3), S(3, -3), S(1, 10), S(1, 4), S(-11, 6), S(-16, -8)
+    };
+    static readonly KTScore[] RookPsqt = {
+        S(29, 18), S(8, -4), S(2, 4), S(10, -16), S(24, 14), S(-5, -16), S(22, -2), S(-26, -24),
+        S(39, 32), S(-1, -23), S(40, 24), S(30, 5), S(35, 20), S(21, 2), S(17, 14), S(22, -8),
+        S(1, -18), S(9, -12), S(5, -3), S(16, -1), S(-7, 4), S(21, -12), S(-11, -3), S(12, -31),
+        S(-15, -2), S(20, -26), S(7, 4), S(12, -8), S(4, 13), S(6, -8), S(1, -10), S(3, -18),
+        S(-4, -26), S(9, -8), S(3, -8), S(14, 9), S(18, 4), S(2, 2), S(4, 0), S(1, -24),
+        S(3, -8), S(2, -18), S(3, 6), S(5, -2), S(5, 11), S(10, 4), S(9, -4), S(-4, -14),
+        S(-10, -24), S(2, 0), S(13, 5), S(6, 14), S(6, 10), S(7, 14), S(9, 11), S(-3, -8),
+        S(-8, -7), S(-7, -13), S(11, 20), S(26, 29), S(14, 31), S(4, 12), S(-11, -6), S(-9, 2)
+    };
+    static readonly KTScore[] QueenPsqt = {
+        S(-18, -16), S(0, -26), S(14, 4), S(-10, -21), S(17, -7), S(-36, -34), S(14, 7), S(-41, -63),
+        S(10, -6), S(10, -15), S(15, 0), S(1, -18), S(-3, -6), S(7, -23), S(6, -13), S(-1, -22),
+        S(-5, -13), S(16, -1), S(-2, 9), S(26, -7), S(-6, 2), S(22, -21), S(-10, 3), S(10, -36),
+        S(2, -1), S(12, -8), S(9, 18), S(11, -3), S(6, -5), S(13, -8), S(1, -21), S(4, -13),
+        S(3, -8), S(14, 9), S(23, 9), S(7, 7), S(9, 5), S(11, -14), S(8, -3), S(-3, -23),
+        S(-7, -4), S(10, 3), S(10, 16), S(15, 9), S(14, 1), S(6, -4), S(5, -9), S(-8, -10),
+        S(3, -5), S(6, 14), S(11, 15), S(7, 14), S(9, 11), S(12, 7), S(12, 13), S(3, -3),
+        S(-9, 0), S(1, 4), S(-11, 6), S(-1, 7), S(4, 9), S(1, 12), S(7, 3), S(-15, 14)
+    };
+    static readonly KTScore[] KingPsqt = {
+        S(-56, -6), S(-75, -26), S(-48, -12), S(-96, -34), S(-46, 7), S(-91, -53), S(-50, -6), S(-70, -35),
+        S(-45, -5), S(-59, -18), S(-63, -1), S(-53, -18), S(-54, -8), S(-51, -7), S(-55, -3), S(-44, -6),
+        S(-47, -6), S(-29, -17), S(-61, 17), S(-43, 4), S(-70, 33), S(-30, -6), S(-43, -1), S(-28, -18),
+        S(-26, -2), S(-34, -18), S(-39, 25), S(-42, 32), S(-49, 24), S(-31, 27), S(-37, -18), S(-16, -6),
+        S(-2, -16), S(-28, -13), S(-26, 30), S(-34, 21), S(-32, 37), S(-28, 12), S(-27, -9), S(-15, -22),
+        S(-5, -14), S(-10, -16), S(-11, 16), S(-19, 16), S(-15, 16), S(-18, 20), S(-7, -15), S(-4, -11),
+        S(16, -20), S(17, -11), S(4, 11), S(7, 7), S(7, 13), S(8, 7), S(21, -5), S(21, -16),
+        S(9, -34), S(19, -18), S(19, -16), S(6, -8), S(17, -17), S(0, 4), S(14, -16), S(-9, 16)
+    };
+
+    // Evaluation data
+    static int[][] pieceCount;
+    static int phase;
+    static readonly int[] PhaseValues = { 0, 1, 1, 2, 4, 0 };
+    const int MAX_TOTAL_PHASE_VALUE = 24;
+
+    static bool isWhiteToMove;
+    static int stmSign;
+    static Color friendlyColor;
+    static Color enemyColor;
+    static int materialDelta;
+
+    // Precomputed data for RangeDistanceFromSquare (for bishop mate corners)
+    static readonly int[,] RangeDistanceFromSquare;
+
+    static KTCSEval()
+    {
+        pieceCount = new int[2][];
+        pieceCount[0] = new int[6];
+        pieceCount[1] = new int[6];
+        pieceCount[0][5] = 1;
+        pieceCount[1][5] = 1;
+
+        phase = 0;
+
+        // Precompute RangeDistanceFromSquare for bishop mate evaluation
+        RangeDistanceFromSquare = new int[64, 64];
+        for (int startSquare = 0; startSquare < 64; startSquare++)
+        {
+            for (int targetSquare = 0; targetSquare < 64; targetSquare++)
+            {
+                int startFile = SquareHelper.GetFile((Square)startSquare);
+                int startRank = SquareHelper.GetRank((Square)startSquare);
+                int targetFile = SquareHelper.GetFile((Square)targetSquare);
+                int targetRank = SquareHelper.GetRank((Square)targetSquare);
+
+                RangeDistanceFromSquare[startSquare, targetSquare] = Math.Max(Math.Abs(targetFile - startFile), Math.Abs(targetRank - startRank));
+            }
+        }
+    }
+
+    static void Update()
+    {
+        int currentPhaseSum = 0;
+        for (int color = 0; color < 2; color++)
+        {
+            for (int pieceType = 0; pieceType < 5; pieceType++)
+            {
+                pieceCount[color][pieceType] = board.BitboardSets[color].Indexed(pieceType).Count();
+                currentPhaseSum += pieceCount[color][pieceType] * PhaseValues[pieceType];
+            }
+        }
+
+        currentPhaseSum = Math.Min(currentPhaseSum, MAX_TOTAL_PHASE_VALUE);
+        phase = currentPhaseSum * 256 / MAX_TOTAL_PHASE_VALUE;
+
+        isWhiteToMove = board.State.SideToMove;
+        stmSign = isWhiteToMove ? 1 : -1;
+        friendlyColor = isWhiteToMove ? PieceHelper.WHITE : PieceHelper.BLACK;
+        enemyColor = isWhiteToMove ? PieceHelper.BLACK : PieceHelper.WHITE;
+    }
+
+    public static int Eval(bool verbose = false)
+    {
+        Update();
+
+        int sum = 0;
+        int phase = KTCSEval.phase;
+
+        sum += Material(phase);
+        sum += PieceMobility(phase);
+        sum += Outpost(phase);
+        sum += PieceSquareTableScore(phase);
+        sum += CalculateMopUpScore(phase);
+        sum += CalculateOpenFileBonus(phase);
+        sum += EvaluatePawns(phase);
+        sum += KingSafety(phase);
+
+        if (verbose)
+        {
+            System.Console.WriteLine($"KTCSEval: {sum}");
+        }
+
+        return sum * stmSign;
+    }
+
+    static int Material(int phase)
+    {
+        int material = 0;
+        for (int i = 0; i < 5; i++)
+        {
+            material += (pieceCount[friendlyColor][i] - pieceCount[enemyColor][i]) * MaterialValues[i][phase];
+        }
+        materialDelta = material;
+        return material;
+    }
+
+    static int PieceMobility(int phase)
+    {
+        int score = 0;
+
+        for (int color = 0; color < 2; color++)
+        {
+            Bitboard bishops = board.BitboardSets[color][PieceHelper.BISHOP];
+            Bitboard friendlyPawns = color == 0 ? board.BitboardSets[0][PieceHelper.PAWN] : board.BitboardSets[1][PieceHelper.PAWN];
+
+            Bitboard bishopsCopy = bishops;
+            while (bishopsCopy != 0)
+            {
+                Square sq = (Square)bishopsCopy.PopLSB();
+                Bitboard attackBB = Magic.GetBishopAttacks(sq, board.BitboardSets[0].All | board.BitboardSets[1].All) ^ friendlyPawns;
+
+                int bonus = attackBB.Count() * PieceMobilityPerSquare[phase];
+
+                if (color == 0)
+                {
+                    score += bonus;
+                }
+                else
+                {
+                    score -= bonus;
+                }
+            }
+
+            Bitboard rooks = board.BitboardSets[color][PieceHelper.ROOK];
+            Bitboard rooksCopy = rooks;
+            while (rooksCopy != 0)
+            {
+                Square sq = (Square)rooksCopy.PopLSB();
+                Bitboard attackBB = Magic.GetRookAttacks(sq, board.BitboardSets[0].All | board.BitboardSets[1].All) ^ friendlyPawns;
+
+                int bonus = attackBB.Count() * PieceMobilityPerSquare[phase];
+
+                if (color == 0)
+                {
+                    score += bonus;
+                }
+                else
+                {
+                    score -= bonus;
+                }
+            }
+        }
+
+        return score;
+    }
+
+    static int Outpost(int phase)
+    {
+        int r = 0;
+
+        for (int color = 0; color < 2; color++)
+        {
+            Bitboard enemyPawns = (color == 0) ? board.BitboardSets[1][PieceHelper.PAWN] : board.BitboardSets[0][PieceHelper.PAWN];
+            Bitboard friendlyPawns = (color == 0) ? board.BitboardSets[0][PieceHelper.PAWN] : board.BitboardSets[1][PieceHelper.PAWN];
+
+            Bitboard knights = board.BitboardSets[color][PieceHelper.KNIGHT];
+
+            Bitboard[] passMask = (color == 0) ? EvaluationHelper.PassedPawnMask[0] : EvaluationHelper.PassedPawnMask[1];
+            Bitboard[] enemyPawnAttackMap = Bits.PawnAttacks[1 - color];
+
+            Bitboard knightsCopy = knights;
+            while (knightsCopy != 0)
+            {
+                Square square = (Square)knightsCopy.PopLSB();
+                int sq = (int)square;
+
+                if (
+                    (passMask[sq] & enemyPawns & Bits.AdjacentFiles[SquareHelper.GetFile(square)]) == 0 &&
+                    ((enemyPawnAttackMap[sq] & friendlyPawns) != 0)
+                )
+                {
+                    r += OutpostBonus[phase];
+                }
+            }
+        }
+
+        return r;
+    }
+
+    static int PieceSquareTableScore(int phase)
+    {
+        int value = 0;
+
+        for (int color = 0; color < 2; color++)
+        {
+            bool white = color == 0;
+
+            int v = 0;
+
+            v += ReadPieceSquareTable(PawnPsqt, board.BitboardSets[color][PieceHelper.PAWN], white, phase);
+            v += ReadPieceSquareTable(KnightPsqt, board.BitboardSets[color][PieceHelper.KNIGHT], white, phase);
+            v += ReadPieceSquareTable(BishopPsqt, board.BitboardSets[color][PieceHelper.BISHOP], white, phase);
+            v += ReadPieceSquareTable(RookPsqt, board.BitboardSets[color][PieceHelper.ROOK], white, phase);
+            v += ReadPieceSquareTable(QueenPsqt, board.BitboardSets[color][PieceHelper.QUEEN], white, phase);
+            v += ReadPieceSquareTable(KingPsqt, board.BitboardSets[color][PieceHelper.KING], white, phase);
+
+            if (white)
+            {
+                value += v;
+            }
+            else
+            {
+                value -= v;
+            }
+        }
+
+        return value;
+    }
+
+    static int ReadPieceSquareTable(KTScore[] table, Bitboard pieces, bool white, int phase)
+    {
+        int value = 0;
+
+        Bitboard piecesCopy = pieces;
+        while (piecesCopy != 0)
+        {
+            Square square = (Square)piecesCopy.PopLSB();
+            int tableSquare = white ? SquareHelper.FlipRank(square) : square;
+            value += table[tableSquare][phase];
+        }
+
+        return value;
+    }
+
+    static int CalculateMopUpScore(int phase)
+    {
+        int score = 0;
+
+        for (int color = 0; color < 2; color++)
+        {
+            bool white = color == 0;
+
+            int materialDeltaForColor = materialDelta * (white ? 1 : -1);
+
+            if (materialDeltaForColor - MaterialValues[0][256] * 2 >= 0) // Winning
+            {
+                int mopUpScore = 0;
+                Square friendlyKingSquare = board.KingSquares[white ? PieceHelper.WHITE : PieceHelper.BLACK];
+                Square enemyKingSquare = board.KingSquares[white ? PieceHelper.BLACK : PieceHelper.WHITE];
+
+                int friendlyKingSq = (int)friendlyKingSquare;
+                int enemyKingSq = (int)enemyKingSquare;
+
+                // Friendly king closer to the enemy king
+                mopUpScore += (14 - EvaluationHelper.DistanceFromSquare[friendlyKingSq, enemyKingSq]) * CloserToEnemyKing[phase];
+
+                // Enemy king in the corner
+                mopUpScore += EvaluationHelper.DistanceFromCenter[enemyKingSq] * EnemyKingCorner[phase];
+
+                // Force the enemy king to the corner of the friendly bishop's color
+                Bitboard friendlyBishop = white ? board.BitboardSets[0][PieceHelper.BISHOP] : board.BitboardSets[1][PieceHelper.BISHOP];
+                if (friendlyBishop != 0)
+                {
+                    // Has a light squared bishop
+                    Bitboard lightSquares = 0xAA55AA55AA55AA55ul;
+                    if ((friendlyBishop & lightSquares) != 0)
+                    {
+                        int distA8 = RangeDistanceFromSquare[enemyKingSq, (int)SquareHelper.A8];
+                        int distH1 = RangeDistanceFromSquare[enemyKingSq, (int)SquareHelper.H1];
+                        mopUpScore += (7 - Math.Min(distA8, distH1)) * EnemyKingFriendlyBishopSquare[phase];
+                    }
+                    // Has a dark squared bishop
+                    Bitboard darkSquares = 0x55AA55AA55AA55AAul;
+                    if ((friendlyBishop & darkSquares) != 0)
+                    {
+                        int distH8 = RangeDistanceFromSquare[enemyKingSq, (int)SquareHelper.H8];
+                        int distA1 = RangeDistanceFromSquare[enemyKingSq, (int)SquareHelper.A1];
+                        mopUpScore += (7 - Math.Min(distH8, distA1)) * EnemyKingFriendlyBishopSquare[phase];
+                    }
+                }
+
+                if (white)
+                {
+                    score += mopUpScore;
+                }
+                else
+                {
+                    score -= mopUpScore;
+                }
+            }
+        }
+
+        return score;
+    }
+
+    static int CalculateOpenFileBonus(int phase)
+    {
+        int score = 0;
+
+        for (int color = 0; color < 2; color++)
+        {
+            int v = 0;
+            bool white = color == 0;
+
+            Bitboard rooks = board.BitboardSets[color][PieceHelper.ROOK];
+
+            Bitboard rooksCopy = rooks;
+            while (rooksCopy != 0)
+            {
+                Square square = (Square)rooksCopy.PopLSB();
+
+                if (IsOpenFile(square))
+                {
+                    v += RookOnOpenFileBonus[phase];
+                }
+                else if (IsSemiOpenFile(square))
+                {
+                    v += RookOnSemiOpenFileBonus[phase];
+                }
+            }
+
+            if (white)
+            {
+                score += v;
+            }
+            else
+            {
+                score -= v;
+            }
+        }
+
+        return score;
+    }
+
+    static int EvaluatePawns(int phase)
+    {
+        int score = 0;
+
+        for (int color = 0; color < 2; color++)
+        {
+            bool white = color == 0;
+
+            int eval = 0;
+            Bitboard friendlyPawns = white ? board.BitboardSets[0][PieceHelper.PAWN] : board.BitboardSets[1][PieceHelper.PAWN];
+            Bitboard enemyPawns = white ? board.BitboardSets[1][PieceHelper.PAWN] : board.BitboardSets[0][PieceHelper.PAWN];
+
+            int numIsolated = 0;
+
+            Bitboard pawnsCopy = friendlyPawns;
+            while (pawnsCopy != 0)
+            {
+                Square square = (Square)pawnsCopy.PopLSB();
+                int sq = (int)square;
+
+                Bitboard[] passMask = (color == 0) ? EvaluationHelper.PassedPawnMask[0] : EvaluationHelper.PassedPawnMask[1];
+                if ((passMask[sq] & enemyPawns) == 0)
+                {
+                    int rank = SquareHelper.GetRank(square);
+                    eval += PassedPawnBonus[white ? 7 - rank : rank][phase];
+                }
+
+                if ((friendlyPawns & Bits.AdjacentFiles[SquareHelper.GetFile(square)]) == 0)
+                {
+                    numIsolated++;
+                }
+            }
+
+            int isolatedIndex = Math.Min(numIsolated, IsolatedPawnPenaltyByCount.Length - 1);
+            eval -= IsolatedPawnPenaltyByCount[isolatedIndex][phase];
+
+            if (white)
+            {
+                score += eval;
+            }
+            else
+            {
+                score -= eval;
+            }
+        }
+
+        return score;
+    }
+
+    static int KingSafety(int phase)
+    {
+        int score = 0;
+
+        for (int color = 0; color < 2; color++)
+        {
+            bool isWhite = color == 0;
+
+            Square kingSquare = board.KingSquares[isWhite ? PieceHelper.WHITE : PieceHelper.BLACK];
+            int kingSq = (int)kingSquare;
+
+            Bitboard all = board.BitboardSets[0].All | board.BitboardSets[1].All;
+            Bitboard us = isWhite ? board.BitboardSets[0].All : board.BitboardSets[1].All;
+
+            Bitboard totalAttacks = Magic.GetRookAttacks(kingSquare, all) | Magic.GetBishopAttacks(kingSquare, all);
+
+            // Calculate pawn attacks
+            Bitboard pawnAttacks = 0;
+            Bitboard enemyPawns = isWhite ? board.BitboardSets[1][PieceHelper.PAWN] : board.BitboardSets[0][PieceHelper.PAWN];
+            Bitboard pawnsCopy = enemyPawns;
+            while (pawnsCopy != 0)
+            {
+                Square sq = (Square)pawnsCopy.PopLSB();
+                pawnAttacks |= Bits.PawnAttacks[isWhite ? 1 : 0][(int)sq];
+            }
+
+            totalAttacks &= ~(us | pawnAttacks);
+            int val = totalAttacks.Count();
+
+            // Enemy Queen or Rook on the board
+            Bitboard enemyRooks = isWhite ? board.BitboardSets[1][PieceHelper.ROOK] : board.BitboardSets[0][PieceHelper.ROOK];
+            Bitboard enemyQueens = isWhite ? board.BitboardSets[1][PieceHelper.QUEEN] : board.BitboardSets[0][PieceHelper.QUEEN];
+            if ((enemyRooks | enemyQueens) != 0)
+            {
+                if (IsOpenFile(kingSquare))
+                {
+                    val += KingOpenFilePenalty[phase];
+                }
+                else if (IsSemiOpenFile(kingSquare))
+                {
+                    val += KingSemiOpenFilePenalty[phase];
+                }
+            }
+
+            // King shield (own pawns around king)
+            Bitboard ownPawns = isWhite ? board.BitboardSets[0][PieceHelper.PAWN] : board.BitboardSets[1][PieceHelper.PAWN];
+            int ownPiecesAroundCount = (Bits.KingMovement[kingSq] & ownPawns).Count();
+
+            if (isWhite)
+            {
+                score += val + ownPiecesAroundCount * KingShieldBonus[phase];
+            }
+            else
+            {
+                score -= val + ownPiecesAroundCount * KingShieldBonus[phase];
+            }
+        }
+
+        return score;
+    }
+
+    static bool IsOpenFile(Square square)
+    {
+        int file = SquareHelper.GetFile(square);
+        Bitboard fileBB = Bits.Files[file];
+        Bitboard allPawns = board.BitboardSets[0][PieceHelper.PAWN] | board.BitboardSets[1][PieceHelper.PAWN];
+        return (fileBB & allPawns) == 0;
+    }
+
+    static bool IsSemiOpenFile(Square square)
+    {
+        int file = SquareHelper.GetFile(square);
+        Bitboard fileBB = Bits.Files[file];
+        bool whiteOpen = (fileBB & board.BitboardSets[0][PieceHelper.PAWN]) == 0;
+        bool blackOpen = (fileBB & board.BitboardSets[1][PieceHelper.PAWN]) == 0;
+        return whiteOpen || blackOpen;
+    }
+}
+

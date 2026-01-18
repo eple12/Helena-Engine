@@ -24,9 +24,9 @@ namespace Helena
         constexpr static int32_t max_epoch = 5001;
         constexpr static bool enable_qsearch = false;
         constexpr static bool filter_in_check = true; // good practice to filter noisy positions
-        constexpr static tune_t initial_learning_rate = 1;
+        constexpr static tune_t initial_learning_rate = 2;
         constexpr static int32_t learning_rate_drop_interval = 100;
-        constexpr static tune_t learning_rate_drop_ratio = 0.9;
+        constexpr static tune_t learning_rate_drop_ratio = 0.99;
         constexpr static int32_t data_load_print_interval = 10000;
 
         static parameters_t get_initial_parameters();
