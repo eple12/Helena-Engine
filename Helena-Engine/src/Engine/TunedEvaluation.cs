@@ -5,78 +5,91 @@ using H.Core;
 
 public static partial class TunedEvaluation
 {
-    public static readonly S[] MaterialValues = {new S(118, 159), new S(520, 604), new S(487, 563), new S(568, 980), new S(1532, 1907)};
+    public static readonly S[] MaterialValues = {new S(133, 113), new S(354, 333), new S(379, 357), new S(562, 566), new S(1019, 986)};
     public static readonly S[] PawnPsqt = {
         new S(0, 0), new S(0, 0), new S(0, 0), new S(0, 0), new S(0, 0), new S(0, 0), new S(0, 0), new S(0, 0),
-        new S(42, 101), new S(91, 58), new S(83, 100), new S(40, 70), new S(82, 89), new S(17, 74), new S(67, 106), new S(30, 46),
-        new S(50, 55), new S(29, 41), new S(59, 51), new S(51, 31), new S(47, 46), new S(46, 35), new S(44, 35), new S(42, 45),
-        new S(18, 32), new S(29, 33), new S(9, 40), new S(51, 23), new S(20, 27), new S(40, 8), new S(11, 36), new S(39, 6),
-        new S(11, 32), new S(17, 17), new S(5, 39), new S(29, 16), new S(23, 16), new S(16, 13), new S(16, 4), new S(14, 19),
-        new S(9, 9), new S(19, 25), new S(12, 21), new S(2, 24), new S(5, 20), new S(2, -3), new S(15, 15), new S(11, -3),
-        new S(7, 15), new S(19, 5), new S(13, 20), new S(-13, 15), new S(-15, 5), new S(14, 2), new S(25, 1), new S(9, 8),
+        new S(48, 91), new S(85, 54), new S(78, 107), new S(42, 69), new S(61, 102), new S(9, 78), new S(68, 122), new S(10, 62),
+        new S(43, 56), new S(24, 39), new S(50, 51), new S(44, 32), new S(39, 48), new S(34, 33), new S(24, 40), new S(29, 44),
+        new S(18, 26), new S(31, 26), new S(9, 34), new S(54, 13), new S(22, 21), new S(32, 2), new S(1, 33), new S(28, 5),
+        new S(14, 25), new S(19, 12), new S(9, 32), new S(35, 9), new S(26, 11), new S(14, 7), new S(8, 1), new S(10, 13),
+        new S(13, 5), new S(19, 18), new S(13, 14), new S(7, 19), new S(9, 16), new S(0, -8), new S(9, 8), new S(8, -7),
+        new S(11, 9), new S(21, -2), new S(16, 13), new S(-9, 15), new S(-10, 5), new S(12, 2), new S(18, -3), new S(5, 7),
         new S(0, 0), new S(0, 0), new S(0, 0), new S(0, 0), new S(0, 0), new S(0, 0), new S(0, 0), new S(0, 0)
     };
     public static readonly S[] KnightPsqt = {
-        new S(104, -11), new S(-103, -38), new S(37, 11), new S(-53, -6), new S(-11, -3), new S(-74, -29), new S(-41, -36), new S(-43, -94),
-        new S(6, -0), new S(26, -15), new S(63, 18), new S(16, -18), new S(12, 26), new S(-20, -22), new S(-5, 4), new S(-16, -38),
-        new S(3, -7), new S(27, -5), new S(32, 25), new S(45, 8), new S(54, 15), new S(21, 3), new S(16, 7), new S(-15, -20),
-        new S(-30, 6), new S(37, 9), new S(23, 26), new S(52, 9), new S(18, 36), new S(56, 1), new S(25, 20), new S(-11, -17),
-        new S(-22, 1), new S(17, 19), new S(26, 19), new S(34, 21), new S(30, 11), new S(33, 19), new S(26, -1), new S(-8, -10),
-        new S(-8, -25), new S(15, 14), new S(19, 8), new S(32, 11), new S(36, 25), new S(16, -8), new S(14, 15), new S(-16, -41),
-        new S(-35, -14), new S(-3, -1), new S(17, 8), new S(9, 1), new S(13, -5), new S(10, 17), new S(-1, -9), new S(-24, -41),
-        new S(-42, -5), new S(-37, -51), new S(-13, -8), new S(-15, -5), new S(-16, 4), new S(-6, -23), new S(-31, -42), new S(-24, -24)
+        new S(-51, -18), new S(-126, -58), new S(10, -2), new S(-71, -26), new S(1, -35), new S(-88, -33), new S(-36, -57), new S(-88, -86),
+        new S(21, -18), new S(43, -38), new S(71, -3), new S(11, -36), new S(28, 7), new S(-21, -31), new S(7, -2), new S(-21, -58),
+        new S(8, -20), new S(13, -13), new S(24, 13), new S(41, -4), new S(63, -4), new S(42, -11), new S(12, 1), new S(-18, -28),
+        new S(-34, -9), new S(28, -5), new S(16, 19), new S(43, 2), new S(11, 31), new S(41, -2), new S(12, 9), new S(-8, -37),
+        new S(-28, -10), new S(12, 2), new S(18, 15), new S(31, 13), new S(23, 7), new S(27, 14), new S(10, -6), new S(-18, -21),
+        new S(-20, -30), new S(6, 5), new S(9, 4), new S(23, 2), new S(22, 19), new S(8, -15), new S(8, 6), new S(-31, -35),
+        new S(-37, -27), new S(-14, -6), new S(5, -3), new S(2, -6), new S(5, -7), new S(3, -5), new S(-8, -24), new S(-38, -44),
+        new S(-50, -13), new S(-45, -41), new S(-20, -16), new S(-20, -24), new S(-21, -13), new S(-15, -30), new S(-41, -26), new S(-43, 4)
     };
     public static readonly S[] BishopPsqt = {
-        new S(45, 22), new S(-8, 13), new S(30, 34), new S(5, 12), new S(-16, 16), new S(-68, 5), new S(-17, 40), new S(-5, -15),
-        new S(58, 24), new S(40, -1), new S(66, 41), new S(-7, -17), new S(79, 17), new S(21, 5), new S(45, 29), new S(-19, 14),
-        new S(-6, 13), new S(15, 5), new S(34, 12), new S(40, 12), new S(9, 28), new S(35, 23), new S(-11, 37), new S(24, -10),
-        new S(-4, 9), new S(32, -5), new S(16, 31), new S(54, 1), new S(41, 29), new S(39, 12), new S(23, 26), new S(13, -1),
-        new S(8, -12), new S(28, -2), new S(17, -2), new S(38, 17), new S(27, 27), new S(35, 28), new S(38, 13), new S(3, -1),
-        new S(2, 4), new S(32, 5), new S(33, 28), new S(20, 1), new S(21, 27), new S(25, 21), new S(29, 26), new S(13, 3),
-        new S(12, -7), new S(15, 1), new S(20, 2), new S(10, 8), new S(18, 8), new S(18, 20), new S(18, 13), new S(10, 6),
-        new S(3, 13), new S(15, 13), new S(4, 2), new S(17, 9), new S(10, 30), new S(4, 8), new S(4, 13), new S(-8, 17)
+        new S(-50, -6), new S(-33, -10), new S(31, -6), new S(-25, -4), new S(-44, 7), new S(-102, -14), new S(-8, -9), new S(-21, -51),
+        new S(42, -5), new S(43, -22), new S(63, 18), new S(-5, -34), new S(58, 7), new S(12, -4), new S(49, 8), new S(-13, -13),
+        new S(12, -18), new S(9, -11), new S(28, 6), new S(32, 4), new S(13, 12), new S(33, 17), new S(-8, 19), new S(21, -22),
+        new S(-3, -12), new S(23, -12), new S(5, 22), new S(43, -3), new S(25, 29), new S(27, 4), new S(6, 22), new S(5, -10),
+        new S(-3, -23), new S(12, -10), new S(5, -8), new S(23, 12), new S(15, 18), new S(20, 22), new S(28, 2), new S(-7, -18),
+        new S(-10, -13), new S(17, -16), new S(16, 14), new S(6, -6), new S(8, 15), new S(15, 11), new S(15, 14), new S(-1, -7),
+        new S(1, -35), new S(2, -13), new S(3, -19), new S(-3, -3), new S(8, -1), new S(3, 12), new S(7, 9), new S(-2, -13),
+        new S(-12, -4), new S(0, -1), new S(-9, -0), new S(4, -5), new S(-4, 10), new S(-2, -0), new S(-9, 3), new S(-15, -8)
     };
     public static readonly S[] RookPsqt = {
-        new S(34, 59), new S(-3, 40), new S(19, 27), new S(-3, 9), new S(-3, 33), new S(-48, 24), new S(-10, 55), new S(-45, 30),
-        new S(72, 73), new S(29, 18), new S(69, 58), new S(64, 31), new S(66, 45), new S(35, 40), new S(43, 46), new S(31, 42),
-        new S(21, 27), new S(25, 32), new S(40, 29), new S(32, 30), new S(25, 26), new S(36, 24), new S(-5, 36), new S(7, 23),
-        new S(-5, 46), new S(35, 22), new S(17, 51), new S(38, 29), new S(31, 47), new S(26, 26), new S(15, 32), new S(6, 33),
-        new S(-3, 23), new S(9, 39), new S(16, 31), new S(29, 47), new S(40, 42), new S(14, 31), new S(-8, 47), new S(7, 17),
-        new S(6, 41), new S(9, 18), new S(14, 41), new S(20, 27), new S(21, 34), new S(19, 24), new S(26, 10), new S(0, 15),
-        new S(-4, 12), new S(9, 35), new S(23, 36), new S(16, 40), new S(22, 27), new S(15, 34), new S(18, 21), new S(1, 22),
-        new S(-9, -19), new S(-5, 8), new S(13, 38), new S(29, 33), new S(19, 37), new S(5, 1), new S(-6, -5), new S(-9, -21)
+        new S(40, 29), new S(12, 9), new S(33, 4), new S(37, -16), new S(33, 12), new S(-2, -11), new S(27, 9), new S(-62, 2),
+        new S(60, 42), new S(27, -19), new S(68, 26), new S(50, 9), new S(51, 23), new S(31, 11), new S(35, 19), new S(30, 7),
+        new S(11, -5), new S(25, -4), new S(22, 11), new S(21, 9), new S(14, 12), new S(36, -2), new S(5, 7), new S(12, -7),
+        new S(-9, 18), new S(24, -9), new S(1, 29), new S(18, 11), new S(15, 27), new S(3, 11), new S(-13, 8), new S(-1, 7),
+        new S(-9, -13), new S(7, 9), new S(3, 1), new S(14, 20), new S(20, 15), new S(-2, 6), new S(-9, 10), new S(-4, -15),
+        new S(-6, 0), new S(-4, -13), new S(-0, 10), new S(5, -5), new S(-0, 10), new S(0, 1), new S(7, -9), new S(-17, -11),
+        new S(-8, -28), new S(-3, -3), new S(10, 2), new S(6, 7), new S(3, 2), new S(5, 2), new S(7, -3), new S(-4, -6),
+        new S(-20, -33), new S(-14, -20), new S(3, 11), new S(18, 12), new S(8, 10), new S(-7, -15), new S(-18, -26), new S(-23, -25)
     };
     public static readonly S[] QueenPsqt = {
-        new S(25, 16), new S(69, -33), new S(45, 15), new S(17, -41), new S(56, -20), new S(16, -58), new S(60, 8), new S(-2, -46),
-        new S(54, 83), new S(73, 65), new S(91, 36), new S(70, 6), new S(73, 11), new S(60, 27), new S(57, 36), new S(33, 43),
-        new S(22, 91), new S(66, 69), new S(53, 67), new S(80, 38), new S(37, 20), new S(78, 20), new S(20, 63), new S(31, 42),
-        new S(26, 97), new S(49, 50), new S(42, 97), new S(44, 53), new S(58, 15), new S(52, 30), new S(41, 8), new S(31, 28),
-        new S(26, 44), new S(50, 49), new S(55, 43), new S(41, 52), new S(42, 52), new S(46, 20), new S(45, 1), new S(31, 3),
-        new S(27, 35), new S(35, 23), new S(41, 45), new S(41, 33), new S(42, 36), new S(29, 24), new S(35, 7), new S(27, 1),
-        new S(26, 31), new S(29, 49), new S(37, 23), new S(32, 30), new S(34, 23), new S(38, 37), new S(39, 36), new S(34, 26),
-        new S(10, 37), new S(21, 47), new S(13, 35), new S(21, -29), new S(25, 35), new S(30, 22), new S(31, 40), new S(-10, 75)
+        new S(-26, -17), new S(21, -62), new S(16, -10), new S(20, -63), new S(20, -27), new S(-24, -61), new S(22, -14), new S(-60, -76),
+        new S(46, 11), new S(88, -24), new S(63, -4), new S(51, -31), new S(27, -9), new S(25, 9), new S(44, -9), new S(26, -26),
+        new S(8, 30), new S(35, 34), new S(30, 31), new S(53, 7), new S(5, 7), new S(37, -3), new S(-7, 27), new S(-1, -4),
+        new S(17, 44), new S(12, 26), new S(22, 67), new S(16, 40), new S(21, 11), new S(19, 6), new S(2, -18), new S(-1, -10),
+        new S(-1, 8), new S(13, 31), new S(16, 35), new S(4, 41), new S(4, 33), new S(6, -1), new S(5, -7), new S(-9, -23),
+        new S(-7, -5), new S(2, -1), new S(1, 26), new S(5, 14), new S(6, 12), new S(-5, 2), new S(3, -24), new S(-11, -24),
+        new S(-1, -15), new S(1, 8), new S(2, 6), new S(-0, 9), new S(-1, 7), new S(1, 9), new S(7, 1), new S(4, -3),
+        new S(-11, -13), new S(-7, 4), new S(-20, 7), new S(-15, -10), new S(-5, 3), new S(5, -12), new S(8, -24), new S(-27, 23)
     };
     public static readonly S[] KingPsqt = {
-        new S(-132, 31), new S(-159, 17), new S(-115, 35), new S(-151, -4), new S(-22, 13), new S(-129, -40), new S(-97, -15), new S(-73, -2),
-        new S(-90, 33), new S(-59, 2), new S(-12, 4), new S(-77, -1), new S(-67, -1), new S(-70, 14), new S(-76, 14), new S(-117, 27),
-        new S(-52, 19), new S(-87, 5), new S(-48, 28), new S(-67, 12), new S(-73, 48), new S(-35, 13), new S(-92, 16), new S(-74, 3),
-        new S(-63, 16), new S(-39, -11), new S(-81, 37), new S(-52, 36), new S(-42, 19), new S(-29, 32), new S(-52, -12), new S(-42, 7),
-        new S(3, -10), new S(-10, -17), new S(-29, 30), new S(-26, 15), new S(-20, 30), new S(-3, 4), new S(-33, -10), new S(-32, -18),
-        new S(24, -8), new S(19, -21), new S(21, 6), new S(4, 7), new S(5, 4), new S(14, 6), new S(14, -29), new S(11, -22),
-        new S(32, -29), new S(38, -18), new S(22, 4), new S(21, -3), new S(21, 1), new S(21, -3), new S(31, -21), new S(36, -35),
-        new S(37, -29), new S(30, -24), new S(24, -33), new S(18, -11), new S(18, -38), new S(20, -6), new S(26, -39), new S(11, -2)
+        new S(-66, 38), new S(-94, 13), new S(-50, 19), new S(-99, -34), new S(-38, 20), new S(-95, -45), new S(-75, -3), new S(-74, 17),
+        new S(-47, 32), new S(-59, 8), new S(-37, 10), new S(-51, -14), new S(-50, -16), new S(-66, 19), new S(-75, 20), new S(-65, 21),
+        new S(-52, 20), new S(-64, 8), new S(-80, 27), new S(-48, -6), new S(-90, 32), new S(-56, 12), new S(-99, 34), new S(-49, 3),
+        new S(-71, 12), new S(-80, -4), new S(-111, 37), new S(-99, 26), new S(-53, 13), new S(-74, 40), new S(-80, 1), new S(-29, 1),
+        new S(9, -19), new S(-24, -14), new S(-48, 26), new S(-68, 15), new S(-34, 26), new S(-29, 9), new S(-16, -15), new S(-5, -34),
+        new S(-4, -5), new S(22, -24), new S(16, -1), new S(-17, 1), new S(-4, -1), new S(8, 4), new S(14, -30), new S(28, -32),
+        new S(34, -25), new S(39, -19), new S(30, -6), new S(26, -17), new S(25, -12), new S(32, -11), new S(46, -29), new S(49, -39),
+        new S(43, -32), new S(45, -38), new S(35, -40), new S(37, -33), new S(27, -50), new S(38, -23), new S(38, -43), new S(23, -1)
     };
-    public static readonly S OutpostBonus = new S(23, 24);
-    public static readonly S OpenFileBonus = new S(44, 0);
-    public static readonly S SemiFileBonus = new S(16, 22);
-    public static readonly S[] PassedPawnBonus = {new S(0, 0), new S(-17, 2), new S(-23, 14), new S(-26, 58), new S(21, 100), new S(72, 197), new S(112, 279), new S(0, 0)};
-    public static readonly S IsolatedPawnPenaltyPerPawn = new S(17, 21);
+
+    // Piece Features
+    public static readonly S BishopPairBonus = new S(21, 14);
+    public static readonly S[] KnightMobilityBonus = {new S(13, -4), new S(33, 30), new S(43, 39), new S(49, 43), new S(49, 42), new S(49, 47), new S(50, 45), new S(47, 47), new S(51, 37)};
+    public static readonly S[] BishopMobilityBonus = {new S(10, 1), new S(31, 34), new S(41, 43), new S(48, 44), new S(53, 53), new S(53, 54), new S(55, 54), new S(55, 52), new S(52, 55), new S(53, 49), new S(51, 46), new S(51, 36), new S(39, 43), new S(42, 14)};
+    public static readonly S[] RookMobilityBonus = {new S(7, -14), new S(27, 24), new S(37, 38), new S(43, 46), new S(48, 53), new S(47, 59), new S(46, 64), new S(46, 64), new S(46, 63), new S(45, 64), new S(47, 60), new S(45, 60), new S(43, 57), new S(40, 50), new S(57, 25)};
+    public static readonly S[] QueenMobilityBonus = {new S(-6, 0), new S(23, 59), new S(34, 43), new S(41, 60), new S(47, 60), new S(46, 67), new S(47, 69), new S(46, 74), new S(46, 78), new S(46, 76), new S(47, 79), new S(46, 82), new S(48, 81), new S(48, 83), new S(45, 82), new S(52, 77), new S(56, 69), new S(64, 56), new S(64, 52), new S(72, 35), new S(76, 26), new S(71, 17), new S(124, -22), new S(93, -15), new S(52, -4), new S(47, -3), new S(16, -20), new S(27, -5)};
+    public static readonly S OutpostBonus = new S(21, 31);
+    public static readonly S OpenFileBonus = new S(43, 1);
+    public static readonly S SemiFileBonus = new S(13, 23);
+
+    // Pawn Features
+    public static readonly S[] PassedPawnBonus = {new S(0, 0), new S(0, 11), new S(10, 18), new S(21, 62), new S(28, 104), new S(69, 194), new S(80, 314), new S(0, 0)};
+    public static readonly S PassedPawnProtectedBonus = new S(50, 74);
+    public static readonly S[] PassedPawnBlockedPenalty = {new S(5, 17), new S(-2, 23), new S(-6, 21), new S(-4, 4), new S(-2, 16)};
+    public static readonly S DoubledPawnPenalty = new S(8, 9);
+    public static readonly S[] IsolatedPawnPenaltyByCount = {new S(-3, -2), new S(17, 30), new S(25, 42), new S(37, 54), new S(51, 66), new S(75, 67), new S(73, 71), new S(86, 83), new S(90, 100)};
 
     // King Safety
-    public static readonly S PawnShelterMissingPenalty = new S(17, -2);
-    public static readonly S PawnShelterWeakPenalty = new S(11, 0);
-    public static readonly S KingFileOpenPenalty = new S(24, 1);
-    public static readonly S KingFileSemiOpenPenalty = new S(10, -5);
+    public static readonly S PawnShelterMissingPenalty = new S(17, -3);
+    public static readonly S PawnShelterWeakPenalty = new S(10, -2);
+    public static readonly S KingFileOpenPenalty = new S(21, 1);
+    public static readonly S KingFileSemiOpenPenalty = new S(11, -5);
+    public static readonly S[] PawnStormPenaltyByDistance = {new S(53, -46), new S(36, -4), new S(23, -1), new S(15, -2)};
 
 
 

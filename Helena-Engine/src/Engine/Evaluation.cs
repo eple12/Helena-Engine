@@ -24,6 +24,8 @@ public static class Evaluation
     static Color friendlyColor;
     static Color enemyColor;
     static int materialDelta;
+    static Bitboard[] pawnAttacks;
+    static Bitboard allOccupancy;
 
     static Evaluation()
     {
@@ -37,6 +39,8 @@ public static class Evaluation
         pieceCount[1][5] = 1;
 
         phase = 0; // Initialize phase
+
+        pawnAttacks = new Bitboard[2];
     }
 
     static void Update()
@@ -64,6 +68,13 @@ public static class Evaluation
         stmSign = isWhiteToMove ? 1 : -1;
         friendlyColor = isWhiteToMove ? PieceHelper.WHITE : PieceHelper.BLACK;
         enemyColor = isWhiteToMove ? PieceHelper.BLACK : PieceHelper.WHITE;
+
+        for (Color c = 0; c < 2; c++)
+        {
+            pawnAttacks[c] = BitboardHelper.PawnAttacks(board.BitboardSets[c][PieceHelper.PAWN], c);
+        }
+
+        allOccupancy = board.BitboardSets[0].All | board.BitboardSets[1].All;
     }
 
     public static int Eval(bool verbose = false)
@@ -75,9 +86,13 @@ public static class Evaluation
         // I don't know if we really need piece mobility eval
 
         eval += Material();
+        eval += BishopPair();
         eval += MopUp();
 
         eval += PSQTValue();
+
+        eval += PieceMobility(friendlyColor);
+        eval -= PieceMobility(enemyColor);
         
         eval += Outpost(friendlyColor);
         eval -= Outpost(enemyColor);
@@ -110,6 +125,20 @@ public static class Evaluation
             val += MaterialValues[i] * (pieceCount[friendlyColor][i] - pieceCount[enemyColor][i]);
         }
         materialDelta = val[phase];
+        return val;
+    }
+    static TaperedScore BishopPair()
+    {
+        TaperedScore val = new (0, 0);
+        if (pieceCount[friendlyColor][2] >= 2) // Bishop Count >= 2
+        {
+            val += BishopPairBonus;
+        }
+        if (pieceCount[enemyColor][2] >= 2) // Bishop Count >= 2
+        {
+            val -= BishopPairBonus;
+        }
+
         return val;
     }
     static readonly TaperedScore[][] PsqtTables = {
@@ -172,6 +201,54 @@ public static class Evaluation
         }
 
         return eval;
+    }
+    static TaperedScore PieceMobility(Color color)
+    {
+        TaperedScore val = new (0, 0);
+
+        Bitboard safeSquares = ~pawnAttacks[1 - color] & ~board.BitboardSets[color].All;
+
+        // Knight
+        Bitboard knights = board.BitboardSets[color][PieceHelper.KNIGHT];
+
+        while (knights != 0)
+        {
+            int sq = knights.PopLSB();
+            Bitboard moves = Bits.KnightMovement[sq] & safeSquares;
+            val += KnightMobilityBonus[moves.Count()];
+        }
+
+        // Bishop
+        Bitboard bishops = board.BitboardSets[color][PieceHelper.BISHOP];
+
+        while (bishops != 0)
+        {
+            int sq = bishops.PopLSB();
+            Bitboard moves = Magic.GetBishopAttacks((Square) sq, allOccupancy) & safeSquares;
+            val += BishopMobilityBonus[moves.Count()];
+        }
+
+        // Rook
+        Bitboard rooks = board.BitboardSets[color][PieceHelper.ROOK];
+
+        while (rooks != 0)
+        {
+            int sq = rooks.PopLSB();
+            Bitboard moves = Magic.GetRookAttacks((Square) sq, allOccupancy) & safeSquares;
+            val += RookMobilityBonus[moves.Count()];
+        }
+
+        // Queen
+        Bitboard queens = board.BitboardSets[color][PieceHelper.QUEEN];
+
+        while (queens != 0)
+        {
+            int sq = queens.PopLSB();
+            Bitboard moves = (Magic.GetBishopAttacks((Square) sq, allOccupancy) | Magic.GetRookAttacks((Square) sq, allOccupancy)) & safeSquares;
+            val += QueenMobilityBonus[moves.Count()];
+        }
+
+        return val;
     }
     static TaperedScore Outpost(Color color) // For Knights and Bishops
     {
@@ -244,15 +321,37 @@ public static class Evaluation
             if ((passedMask & enemyPawns) == 0)
             {
                 eval += PassedPawnBonus[color == 0 ? rank : 7 - rank];
+
+                if ((Bits.PawnAttacks[(Color) (1 - color)][sq] & friendlyPawns) != 0)
+                {
+                    // Protected Passed Pawn
+                    eval += PassedPawnProtectedBonus;
+                }
+
+                if ((passedMask & Bits.Files[file] & friendlyPawns) == 0)
+                {
+                    int nextSq = sq + (color == PieceHelper.WHITE ? 8 : -8);
+                    int blockingPieceType = PieceHelper.GetPieceType(board.At((Square) nextSq)); // Cannot be a pawn since it is a passed pawn
+
+                    if (blockingPieceType != PieceHelper.NONE)
+                    {
+                        eval -= PassedPawnBlockedPenalty[blockingPieceType - PieceHelper.KNIGHT]; // Knight to 0
+                    }
+                }
             }
 
             if ((friendlyPawns & Bits.AdjacentFiles[file]) == 0)
             {
                 numIsolated++;
             }
+
+            if ((Bits.Files[file] & friendlyPawns).MoreThanOne())
+            {
+                eval -= DoubledPawnPenalty;
+            }
         }
 
-        eval -= numIsolated * IsolatedPawnPenaltyPerPawn;
+        eval -= IsolatedPawnPenaltyByCount[numIsolated];
 
         return eval;
     }
@@ -264,8 +363,8 @@ public static class Evaluation
 
         Color opponent = (Color)(1 - color);
         Bitboard friendlyPawns = board.BitboardSets[color][PieceHelper.PAWN];
+        Bitboard enemyPawns = board.BitboardSets[opponent][PieceHelper.PAWN];
 
-        // 1. Pawn Shelter & File Openings
         int shelterBaseRank = (color == PieceHelper.WHITE) ? 1 : 6;
         for (int file = Math.Max(0, kingFile - 1); file <= Math.Min(7, kingFile + 1); file++)
         {
@@ -291,49 +390,20 @@ public static class Evaluation
                     eval -= PawnShelterWeakPenalty * (rankDist -1);
                 }
             }
+
+            Bitboard enemyPawnThisFile = enemyPawns & fileBB;
+            if (enemyPawnThisFile != 0)
+            {
+                Square leadingPawnSquare = (Square) ((color == PieceHelper.WHITE) ? enemyPawnThisFile.PopLSB() : enemyPawnThisFile.PopMSB());
+                // Min 0
+                int leadingRankDist = Math.Abs(SquareHelper.GetRank(leadingPawnSquare) - shelterBaseRank);
+
+                if (leadingRankDist <= 3)
+                {
+                    eval -= PawnStormPenaltyByDistance[leadingRankDist];
+                }
+            }
         }
-
-        // // 3. King Attacks
-        // int attackUnits = 0;
-        // Bitboard kingZone = KingArea[kingSquare];
-        // Bitboard allPieces = board.BitboardSets[0].All | board.BitboardSets[1].All;
-
-        // // Knights
-        // Bitboard attackers = board.BitboardSets[opponent][PieceHelper.KNIGHT];
-        // while (attackers != 0)
-        // {
-        //     Square attackerSq = (Square) attackers.PopLSB();
-        //     if ((Bits.KnightMovement[attackerSq] & kingZone) != 0)
-        //         attackUnits += AttackerWeight[PieceHelper.KNIGHT];
-        // }
-        // // Bishops
-        // attackers = board.BitboardSets[opponent][PieceHelper.BISHOP];
-        // while (attackers != 0)
-        // {
-        //     Square attackerSq = (Square) attackers.PopLSB();
-        //     if ((Magic.GetBishopAttacks(attackerSq, allPieces) & kingZone) != 0)
-        //         attackUnits += AttackerWeight[PieceHelper.BISHOP];
-        // }
-        // // Rooks
-        // attackers = board.BitboardSets[opponent][PieceHelper.ROOK];
-        // while (attackers != 0)
-        // {
-        //     Square attackerSq = (Square) attackers.PopLSB();
-        //     if ((Magic.GetRookAttacks(attackerSq, allPieces) & kingZone) != 0)
-        //         attackUnits += AttackerWeight[PieceHelper.ROOK];
-        // }
-        // // Queens
-        // attackers = board.BitboardSets[opponent][PieceHelper.QUEEN];
-        // while (attackers != 0)
-        // {
-        //     Square attackerSq = (Square) attackers.PopLSB();
-        //     if (((Magic.GetBishopAttacks(attackerSq, allPieces) | Magic.GetRookAttacks(attackerSq, allPieces)) & kingZone) != 0)
-        //         attackUnits += AttackerWeight[PieceHelper.QUEEN];
-        // }
-
-
-        // attackUnits = Math.Min(attackUnits, KingSafetyPenaltyTableLength - 1);
-        // eval -= KingSafetyPenaltyTable[attackUnits];
 
         return eval;
     }
