@@ -190,7 +190,7 @@ namespace EvalConstants {
 //     };
 // // endregion
 // region Modified
-    const int32_t MaterialValues[] = { S(100, 100), S(300, 300), S(320, 320), S(500, 500), S(900, 900) };
+    const int32_t MaterialValues[] = { S(101, 149), S(472, 557), S(441, 516), S(522, 904), S(1433, 1819) };
     const int32_t BishopPairBonus = S(15, 15);
     const int32_t OutpostBonus = S(23, 29);
     const int32_t OpenFileBonus = S(39, 7);
