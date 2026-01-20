@@ -543,6 +543,22 @@ public class Board
         State.Pinned = pinned;
     }
 
+    public Bitboard GetAllAttackersTo(Square square, Bitboard occupancy, Bitboard rooks, Bitboard bishops)
+    {
+        return (rooks & Magic.GetRookAttacks(square, occupancy)) | 
+            (bishops & Magic.GetBishopAttacks(square, occupancy)) | 
+
+            (BitboardSets[0][PieceHelper.PAWN] & Bits.PawnAttacks[1][square]) |  // Reverse White
+            (BitboardSets[1][PieceHelper.PAWN] & Bits.PawnAttacks[0][square]) |  // Reverse Black
+
+            (
+                (BitboardSets[0][PieceHelper.KNIGHT] | BitboardSets[1][PieceHelper.KNIGHT]) & 
+                Bits.KnightMovement[square]
+            ) | 
+            (BitboardSets[0][PieceHelper.KING] | BitboardSets[1][PieceHelper.KING])
+             & Bits.KingMovement[square] & occupancy;
+    }
+
     // Assume that the FEN is valid for "performance".. although it will NOT be used in the search
     // (I just want to keep things simple for now)
     public void LoadPositionFromFEN(string fen)

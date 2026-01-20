@@ -442,20 +442,20 @@ public static class UCI
         // sw.Stop();
         // System.Console.WriteLine(sw.ElapsedMilliseconds);
 
-        // SEE see = new (MainBoard);
-        // // see.HasPositiveScore();
-        // MoveList moves = MainBoard.MoveGenerator.GenerateMoves();
-        // foreach (Move move in moves)
-        // {
-        //     System.Console.WriteLine($"{move.Notation}: {see.HasPositiveScore(move, 0)}");
-        // }
-
-        // see.HasPositiveScore(new Move(SquareHelper.D1, SquareHelper.G4));
-
+        SEE see = new (MainBoard);
+        // see.HasPositiveScore();
         MoveList moves = MainBoard.MoveGenerator.GenerateMoves();
-        MoveOrdering moveOrdering = new(MainBoard, new SEE(MainBoard));
-        moveOrdering.GetOrderedMoves(ref moves, Core.Move.NullMove, false, 0);
+        foreach (Move move in moves)
+        {
+            System.Console.WriteLine($"{move.Notation}: {see.HasPositiveScore(move, 0)}");
+        }
 
-        System.Console.WriteLine(string.Join(' ', moves.ToArray().Select(a => a.Notation)));
+        see.HasPositiveScore(new Move(SquareHelper.D1, SquareHelper.G4));
+
+        // MoveList moves = MainBoard.MoveGenerator.GenerateMoves();
+        // MoveOrdering moveOrdering = new(MainBoard, new SEE(MainBoard));
+        // moveOrdering.GetOrderedMoves(ref moves, Core.Move.NullMove, false, 0);
+
+        // System.Console.WriteLine(string.Join(' ', moves.ToArray().Select(a => a.Notation)));
     }
 }

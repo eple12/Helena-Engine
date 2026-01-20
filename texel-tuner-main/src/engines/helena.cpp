@@ -800,50 +800,107 @@ void print_psqt(stringstream& ss, const parameters_t& parameters, int& index, co
     ss << endl << "    };" << endl;
 }
 
+void print_single_cpp(stringstream& ss, const parameters_t& parameters, int& index, const string& name) {
+    const auto p = parameters[index++];
+    ss << "    const int32_t " << name << " = S(" << round(p[0]) << ", " << round(p[1]) << ");" << endl;
+}
+
+void print_array_cpp(stringstream& ss, const parameters_t& parameters, int& index, const string& name, int count) {
+    ss << "    const int32_t " << name << "[] = { ";
+    for (int i = 0; i < count; ++i) {
+        const auto p = parameters[index++];
+        ss << "S(" << round(p[0]) << ", " << round(p[1]) << ")" << (i == count - 1 ? "" : ", ");
+    }
+    ss << " };" << endl;
+}
+
+void print_psqt_cpp(stringstream& ss, const parameters_t& parameters, int& index, const string& name) {
+     ss << "    const int32_t " << name << "[64] = {" << endl;
+    for (int i = 0; i < 64; ++i) {
+        if (i % 8 == 0) ss << "        ";
+        const auto p = parameters[index++];
+        ss << "S(" << round(p[0]) << ", " << round(p[1]) << ")" << (i == 63 ? "" : ", ");
+        if (i % 8 == 7) ss << endl;
+    }
+    ss << "    };" << endl;
+}
+
 
 void HelenaEval::print_parameters(const parameters_t& parameters) {
     int index = 0;
-    stringstream ss;
-    ss << "// Tuned values for Helena-Engine" << endl;
-    ss << "namespace H.Engine;" << endl << endl;
-    ss << "public static partial class TunedEvaluation" << endl;
-    ss << "{" << endl;
+    stringstream ss_cs;
+    ss_cs << "// Tuned values for Helena-Engine (C#)" << endl;
+    ss_cs << "namespace H.Engine;" << endl << endl;
+    ss_cs << "public static partial class TunedEvaluation" << endl;
+    ss_cs << "{" << endl;
 
-    print_array(ss, parameters, index, "MaterialValues", 5);
+    print_array(ss_cs, parameters, index, "MaterialValues", 5);
     
     const char* psqt_names[] = {"PawnPsqt", "KnightPsqt", "BishopPsqt", "RookPsqt", "QueenPsqt", "KingPsqt"};
     for(int i=0; i<6; ++i) {
-        print_psqt(ss, parameters, index, psqt_names[i]);
+        print_psqt(ss_cs, parameters, index, psqt_names[i]);
     }
     
-    ss << endl;
-    ss << "    // Piece Features" << endl;
-    print_single(ss, parameters, index, "BishopPairBonus");
-    print_array(ss, parameters, index, "KnightMobilityBonus", 9);
-    print_array(ss, parameters, index, "BishopMobilityBonus", 14);
-    print_array(ss, parameters, index, "RookMobilityBonus", 15);
-    print_array(ss, parameters, index, "QueenMobilityBonus", 28);
-    print_single(ss, parameters, index, "OutpostBonus");
-    print_single(ss, parameters, index, "OpenFileBonus");
-    print_single(ss, parameters, index, "SemiFileBonus");
+    ss_cs << endl;
+    ss_cs << "    // Piece Features" << endl;
+    print_single(ss_cs, parameters, index, "BishopPairBonus");
+    print_array(ss_cs, parameters, index, "KnightMobilityBonus", 9);
+    print_array(ss_cs, parameters, index, "BishopMobilityBonus", 14);
+    print_array(ss_cs, parameters, index, "RookMobilityBonus", 15);
+    print_array(ss_cs, parameters, index, "QueenMobilityBonus", 28);
+    print_single(ss_cs, parameters, index, "OutpostBonus");
+    print_single(ss_cs, parameters, index, "OpenFileBonus");
+    print_single(ss_cs, parameters, index, "SemiFileBonus");
     
-    ss << endl;
-    ss << "    // Pawn Features" << endl;
-    print_array(ss, parameters, index, "PassedPawnBonus", 8);
-    print_single(ss, parameters, index, "PassedPawnProtectedBonus");
-    print_array(ss, parameters, index, "PassedPawnBlockedPenalty", 5);
-    print_single(ss, parameters, index, "DoubledPawnPenalty");
-    print_array(ss, parameters, index, "IsolatedPawnPenaltyByCount", 9);
+    ss_cs << endl;
+    ss_cs << "    // Pawn Features" << endl;
+    print_array(ss_cs, parameters, index, "PassedPawnBonus", 8);
+    print_single(ss_cs, parameters, index, "PassedPawnProtectedBonus");
+    print_array(ss_cs, parameters, index, "PassedPawnBlockedPenalty", 5);
+    print_single(ss_cs, parameters, index, "DoubledPawnPenalty");
+    print_array(ss_cs, parameters, index, "IsolatedPawnPenaltyByCount", 9);
     
-    ss << endl;
-    ss << "    // King Safety" << endl;
-    print_single(ss, parameters, index, "PawnShelterMissingPenalty");
-    print_single(ss, parameters, index, "PawnShelterWeakPenalty");
-    print_single(ss, parameters, index, "KingFileOpenPenalty");
-    print_single(ss, parameters, index, "KingFileSemiOpenPenalty");
-    print_array(ss, parameters, index, "PawnStormPenaltyByDistance", 4);
+    ss_cs << endl;
+    ss_cs << "    // King Safety" << endl;
+    print_single(ss_cs, parameters, index, "PawnShelterMissingPenalty");
+    print_single(ss_cs, parameters, index, "PawnShelterWeakPenalty");
+    print_single(ss_cs, parameters, index, "KingFileOpenPenalty");
+    print_single(ss_cs, parameters, index, "KingFileSemiOpenPenalty");
+    print_array(ss_cs, parameters, index, "PawnStormPenaltyByDistance", 4);
 
-    ss << "}" << endl;
+    ss_cs << "}" << endl;
 
-    cout << ss.str();
+    // --- C++ Version ---
+    index = 0; // Reset index for C++
+    stringstream ss_cpp;
+    ss_cpp << "\n\n// --- Tuned values for helena.cpp (C++) ---\n" << endl;
+
+    print_array_cpp(ss_cpp, parameters, index, "MaterialValues", 5);
+    ss_cpp << endl;
+    const char* psqt_names_cpp[] = {"PSQT_PAWN", "PSQT_KNIGHT", "PSQT_BISHOP", "PSQT_ROOK", "PSQT_QUEEN", "PSQT_KING"};
+    for(int i=0; i<6; ++i) {
+        print_psqt_cpp(ss_cpp, parameters, index, psqt_names_cpp[i]);
+    }
+    
+    ss_cpp << endl;
+    print_single_cpp(ss_cpp, parameters, index, "BishopPairBonus");
+    print_array_cpp(ss_cpp, parameters, index, "KnightMobilityBonus", 9);
+    print_array_cpp(ss_cpp, parameters, index, "BishopMobilityBonus", 14);
+    print_array_cpp(ss_cpp, parameters, index, "RookMobilityBonus", 15);
+    print_array_cpp(ss_cpp, parameters, index, "QueenMobilityBonus", 28);
+    print_single_cpp(ss_cpp, parameters, index, "OutpostBonus");
+    print_single_cpp(ss_cpp, parameters, index, "OpenFileBonus");
+    print_single_cpp(ss_cpp, parameters, index, "SemiFileBonus");
+    print_array_cpp(ss_cpp, parameters, index, "PassedPawnBonus", 8);
+    print_single_cpp(ss_cpp, parameters, index, "PassedPawnProtectedBonus");
+    print_array_cpp(ss_cpp, parameters, index, "PassedPawnBlockedPenalty", 5);
+    print_single_cpp(ss_cpp, parameters, index, "DoubledPawnPenalty");
+    print_array_cpp(ss_cpp, parameters, index, "IsolatedPawnPenaltyByCount", 9);
+    print_single_cpp(ss_cpp, parameters, index, "PawnShelterMissingPenalty");
+    print_single_cpp(ss_cpp, parameters, index, "PawnShelterWeakPenalty");
+    print_single_cpp(ss_cpp, parameters, index, "KingFileOpenPenalty");
+    print_single_cpp(ss_cpp, parameters, index, "KingFileSemiOpenPenalty");
+    print_array_cpp(ss_cpp, parameters, index, "PawnStormPenaltyByDistance", 4);
+
+    cout << ss_cs.str() << ss_cpp.str();
 }
