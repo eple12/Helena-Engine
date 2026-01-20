@@ -46,6 +46,10 @@ public readonly struct ProtocolCommand
     public const string BOOK_PARSE = "parse";
     public const string BOOK_TOGGLE = "toggle";
     public const string BOOK_SHOW = "show";
+
+    public const string PRIORITY = "priority";
+    public const string PRIORITY_SHOW = "show";
+    public const string PRIORITY_TOGGLE = "toggle";
 }
 
 public static class UCI
@@ -120,6 +124,10 @@ public static class UCI
                 Book(commandParts[1..]);
                 break;
 
+            case ProtocolCommand.PRIORITY:
+                Priority(commandParts[1..]);
+                break;
+
             default:
                 break;
         }
@@ -168,6 +176,9 @@ public static class UCI
         System.Console.WriteLine();
         System.Console.WriteLine("book <toggle | show | parse>");
         System.Console.WriteLine("    - Manage opening book");
+        System.Console.WriteLine();
+        System.Console.WriteLine("priority <toggle | show>");
+        System.Console.WriteLine("    - Manage process priority");
         System.Console.WriteLine();
         System.Console.WriteLine();
 
@@ -372,6 +383,32 @@ public static class UCI
         {
             engine.ToggleBook();
             System.Console.WriteLine($"Opening book {(engine.GetBookToggle() ? "enabled" : "disabled")}.");
+        }
+    }
+    
+    static void Priority(string[] subcommands)
+    {
+        string sub = subcommands[0];
+
+        if (sub == ProtocolCommand.PRIORITY_TOGGLE)
+        {
+            Process currentProcess = Process.GetCurrentProcess();
+
+            if (currentProcess.PriorityClass != ProcessPriorityClass.High)
+            {
+                currentProcess.PriorityClass = ProcessPriorityClass.High;
+                System.Console.WriteLine("Priority set to High.");
+            }
+            else
+            {
+                currentProcess.PriorityClass = ProcessPriorityClass.Normal;
+                System.Console.WriteLine("Priority set to Normal.");
+            }
+        }
+        else if (sub == ProtocolCommand.PRIORITY_SHOW)
+        {
+            Process currentProcess = Process.GetCurrentProcess();
+            System.Console.WriteLine($"Current process priority: {currentProcess.PriorityClass.ToString()}");
         }
     }
 

@@ -1,6 +1,7 @@
 namespace H.Program;
 
 using System;
+using System.Diagnostics;
 
 public static class Program
 {
@@ -39,6 +40,9 @@ public static class Program
     {
         H.Program.Main.MainBoard.LoadPositionFromFEN(UCI.STARTPOS_FEN);
         H.Book.Book.GenerateTable();
+
+        Process currentProcess = Process.GetCurrentProcess();
+        currentProcess.PriorityClass = ProcessPriorityClass.High;
     }
 
     public const string LOGO =
