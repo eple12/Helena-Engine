@@ -14,8 +14,7 @@ namespace Helena
     class HelenaEval
     {
     public:
-        // Mop-up evaluation is included as non-tunable score (not tuned)
-        constexpr static bool includes_additional_score = true;
+        constexpr static bool includes_additional_score = false;
         constexpr static bool supports_external_chess_eval = true;
         
         // Configuration for the tuner
