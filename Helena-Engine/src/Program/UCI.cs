@@ -119,6 +119,9 @@ public static class UCI
             case ProtocolCommand.ISREADY:
                 System.Console.WriteLine("readyok");
                 break;
+            case "ucinewgame":
+                engine.NewGame();
+                break;
 
             case ProtocolCommand.BOOK:
                 Book(commandParts[1..]);

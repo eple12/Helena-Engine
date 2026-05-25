@@ -11,9 +11,15 @@ public static class Evaluation
 {
     const int MATE_EVAL = 100000;
 
+    // Single-board reference. All static methods operate on this board.
+    // If SMP (multi-threaded search) is ever added, each thread will need its own board instance
+    // and Eval() will need to accept a Board parameter instead of using this static field.
     static Board board = Main.MainBoard;
 
     // Evaluation data
+    // pieceCount[color][i]: number of pieces of color 'color' at 0-based index i.
+    // Index mapping (via BitboardSet.Indexed): 0=Pawn, 1=Knight, 2=Bishop, 3=Rook, 4=Queen, 5=King.
+    // Note: PieceHelper constants are 1-based (PAWN=1..KING=6), so do NOT index pieceCount with them directly.
     static int[][] pieceCount;
     static int phase;
     static readonly int[] PhaseValues = { 0, 1, 1, 2, 4, 0 };
@@ -474,8 +480,8 @@ public struct TaperedScore
 
     public TaperedScore(int m, int e)
     {
-        value = e;
-        value += m << 16;
+        // e를 부호 없는 16비트로 마스킹하여 상위 비트 오염 방지
+        value = (e & 0xFFFF) | (m << 16);
     }
     public TaperedScore(int v)
     {
@@ -512,11 +518,12 @@ public struct TaperedScore
 
     public static TaperedScore operator *(TaperedScore a, int m)
     {
-        return new TaperedScore(a.value * m);
+        // packed raw int 곱셈은 carry 오염이 발생하므로, 반드시 MG/EG를 분리해서 곱해야 한다
+        return new TaperedScore(a.Mid * m, a.End * m);
     }
     public static TaperedScore operator *(int m, TaperedScore a)
     {
-        return new TaperedScore(a.value * m);
+        return new TaperedScore(a.Mid * m, a.End * m);
     }
     public static TaperedScore operator /(TaperedScore a, int m)
     {

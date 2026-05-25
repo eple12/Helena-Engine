@@ -59,6 +59,13 @@ public class EnginePlayer
         return (int) thinkTimeDouble;
     }
 
+    // Handles UCI "ucinewgame": stops any running search and delegates state reset to Engine.
+    public void NewGame()
+    {
+        CancelAndWait();
+        engine.NewGame();
+    }
+
     public void ToggleBook()
     {
         engine.ToggleBook();

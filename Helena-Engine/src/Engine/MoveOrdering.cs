@@ -163,48 +163,31 @@ public class MoveOrdering
         return i + 1;
     }
 
+    // Binary search helpers for a DESCENDING-sorted array.
+    // FindFirstLE: returns the smallest index i where arr[i] <= b  (start of the "low score" region)
+    // FindLastGE:  returns the largest  index i where arr[i] >= a  (end   of the "high score" region)
+    // In a descending array, matching values are on the RIGHT for FindFirstLE and LEFT for FindLastGE,
+    // so the search direction is mirrored compared to a standard ascending binary search.
     static int FindFirstLE(int[] arr, int N, int b)
     {
-        int lo = 0, hi = N - 1;
-        int result = -1;
-
+        int lo = 0, hi = N - 1, result = -1;
         while (lo <= hi)
         {
             int mid = (lo + hi) >> 1;
-
-            if (arr[mid] <= b)
-            {
-                result = mid;
-                hi = mid - 1;
-            }
-            else
-            {
-                lo = mid + 1;
-            }
+            if (arr[mid] <= b) { result = mid; hi = mid - 1; } // go left to find an earlier match
+            else               { lo = mid + 1; }
         }
-
         return result;
     }
     static int FindLastGE(int[] arr, int N, int a)
     {
-        int lo = 0, hi = N - 1;
-        int result = -1;
-
+        int lo = 0, hi = N - 1, result = -1;
         while (lo <= hi)
         {
             int mid = (lo + hi) >> 1;
-
-            if (arr[mid] >= a)
-            {
-                result = mid;
-                lo = mid + 1;
-            }
-            else
-            {
-                hi = mid - 1;
-            }
+            if (arr[mid] >= a) { result = mid; lo = mid + 1; } // go right to find a later match
+            else               { hi = mid - 1; }
         }
-
         return result;
     }
 

@@ -70,6 +70,8 @@ public class MoveGen
         return enemyAttackMap;
     }
 
+    // Heap-allocating overload. Use only outside of search (e.g. UCI commands, perft).
+    // Inside search, use the ref MoveList overload with stackalloc to avoid GC pressure.
     public MoveList GenerateMoves(bool capturesOnly = false)
     {
         MoveList moves = new Move[MAX_MOVES];
@@ -451,146 +453,25 @@ public class MoveGen
 
     void CalculateAttackData()
     {
+        // Pin/check data is computed in Board.CalculatePinCheckData() using BetweenMasks.
+        // That logic was migrated out of MoveGen and is no longer duplicated here.
         GenerateSlidingAttackMap();
-
-        // int startDirIndex = 0;
-        // int endDirIndex = 8;
-
-        // // Skip direction check (Pin / Check)
-        // // There are no enemy queens
-        // if (board.BitboardSets[enemyColor][PieceHelper.QUEEN] == 0)
-        // {
-        //     startDirIndex = board.BitboardSets[enemyColor][PieceHelper.ROOK] != 0 ? 0 : 4;
-        //     endDirIndex = board.BitboardSets[enemyColor][PieceHelper.BISHOP] != 0 ? 8 : 4;
-        // }
-
-        // for (int dirIndex = startDirIndex; dirIndex < endDirIndex; dirIndex++)
-        // {
-        //     bool isDiagonal = dirIndex >= 4;
-
-        //     Bitboard slider = isDiagonal ? enemyDiagSliders : enemyOrthoSliders;
-
-        //     // No enemy slider along this direction so skip it
-        //     if ((Bits.DirRayMasks[friendlyKingSquare][dirIndex] & slider) == 0)
-        //     {
-        //         continue;
-        //     }
-
-        //     int n = Bits.NumSquaresToEdge[friendlyKingSquare][dirIndex];
-        //     int directionOffset = Bits.DirectionOffsets[dirIndex];
-        //     bool isFriendlyPieceAlongRay = false;
-
-        //     // For each direction
-        //     // Does NOT include the king square
-        //     Bitboard rayMask = 0;
-
-        //     for (int i = 1; i <= n; i++)
-        //     {
-        //         Square sq = (Square) (friendlyKingSquare + directionOffset * i);
-        //         rayMask.SetSquare(sq);
-        //         Piece pieceAt = board.At(sq);
-
-        //         if (pieceAt != PieceHelper.NONE)
-        //         {
-        //             if (PieceHelper.IsColor(pieceAt, friendlyColor))
-        //             {
-        //                 if (!isFriendlyPieceAlongRay)
-        //                 {
-        //                     // This piece might be pinned
-        //                     isFriendlyPieceAlongRay = true;
-        //                 }
-        //                 else
-        //                 {
-        //                     // This is the second friendly piece found; it cannot be pinned
-        //                     break;
-        //                 }
-        //             }
-        //             // Enemy spotted
-        //             else
-        //             {
-        //                 PieceType pieceType = PieceHelper.GetPieceType(pieceAt);
-
-        //                 if ((isDiagonal && PieceHelper.IsDiagonal(pieceType)) || (!isDiagonal && PieceHelper.IsOrthogonal(pieceType)))
-        //                 {
-        //                     // Friendly piece blocks the check, so it is pinned
-        //                     if (isFriendlyPieceAlongRay)
-        //                     {
-        //                         // Includes the pinner
-        //                         // Does NOT include the king
-        //                         pinRays |= rayMask;
-        //                     }
-        //                     // No friendly piece blocking the check
-        //                     // So it is a check
-        //                     else
-        //                     {
-        //                         checkRayBitmask |= rayMask;
-        //                         inDoubleCheck = inCheck;
-        //                         inCheck = true;
-        //                     }
-
-        //                     // Found a check or a pin
-        //                     break;
-        //                 }
-        //                 // The enemy piece is not able to move along this ray
-        //                 // So no check or pin
-        //                 else
-        //                 {
-        //                     break;
-        //                 }
-        //             }
-        //         }
-        //     }
-        //     // If in double check, stop searching for pins / checks
-        //     // Since the king moves are the only legal ones
-        //     if (inDoubleCheck)
-        //     {
-        //         break;
-        //     }
-        // }
-
-        // notPinRays = ~pinRays;
 
         Bitboard enemyKnightAttacks = 0;
         Bitboard knights = board.BitboardSets[enemyColor][PieceHelper.KNIGHT];
 
-        // For ALL enemy knights
-        // Does NOT break
         while (knights != 0)
         {
             Square sq = (Square) knights.PopLSB();
-            Bitboard knightAttacks = Bits.KnightMovement[sq];
-            enemyKnightAttacks |= knightAttacks;
-
-            // if ((knightAttacks & board.BitboardSets[friendlyColor][PieceHelper.KING]) != 0)
-            // {
-            //     inDoubleCheck = inCheck;
-            //     inCheck = true;
-            //     checkRayBitmask.SetSquare(sq);
-            // }
+            enemyKnightAttacks |= Bits.KnightMovement[sq];
         }
 
-        // Pawn attacks
         Bitboard enemyPawnBoard = board.BitboardSets[enemyColor][PieceHelper.PAWN];
         enemyPawnAttackMap = BitboardHelper.PawnAttacks(enemyPawnBoard, enemyColor);
-
-        // if (enemyPawnAttackMap.Contains(friendlyKingSquare))
-        // {
-        //     inDoubleCheck = inCheck;
-        //     inCheck = true;
-
-        //     Bitboard possiblePawnAttackOrigins = Bits.PawnAttacks[friendlyColor][friendlyKingSquare];
-        //     Bitboard pawnCheckMap = possiblePawnAttackOrigins & enemyPawnBoard;
-        //     checkRayBitmask |= pawnCheckMap;
-        // }
 
         Square enemyKingSquare = board.KingSquares[enemyColor];
 
         enemyAttackMapNoPawns = enemySlidingAttackMap | enemyKnightAttacks | Bits.KingMovement[enemyKingSquare];
         enemyAttackMap = enemyAttackMapNoPawns | enemyPawnAttackMap;
-
-        // if (!inCheck)
-        // {
-        //     checkRayBitmask = Bitboard.MaxValue;
-        // }
     }
 }

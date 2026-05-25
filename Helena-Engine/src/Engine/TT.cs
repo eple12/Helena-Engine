@@ -8,9 +8,9 @@ public class TT
     public const int LookupFailed = int.MinValue;
 
     public const byte Exact = 0;
-    // Lower bound
+    // Upper bound (fail-low node: true score ≤ stored value)
     public const byte Alpha = 1;
-    // Upper bound
+    // Lower bound (fail-high node: true score ≥ stored value)
     public const byte Beta = 2;
 
     TTEntry[] entries;

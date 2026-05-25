@@ -75,7 +75,7 @@ public struct MoveFlag
 
     public static bool IsCapture(ushort flag)
     {
-        return (flag == Capture) || (flag > 11);
+        return (flag == Capture) || (flag == EP) || (flag > 11);
     }
     public static bool IsCastling(ushort flag)
     {

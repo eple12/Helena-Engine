@@ -38,7 +38,7 @@ public static class SquareHelper
         {
             return "NN";
         }
-        return $"{'a' + file}{'1' + rank}";
+        return $"{(char)('a' + file)}{(char)('1' + rank)}";
     }
 
     public static Square Parse(string square)

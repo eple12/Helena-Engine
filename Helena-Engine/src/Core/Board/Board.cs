@@ -555,8 +555,9 @@ public class Board
                 (BitboardSets[0][PieceHelper.KNIGHT] | BitboardSets[1][PieceHelper.KNIGHT]) & 
                 Bits.KnightMovement[square]
             ) | 
-            (BitboardSets[0][PieceHelper.KING] | BitboardSets[1][PieceHelper.KING])
-             & Bits.KingMovement[square] & occupancy;
+            // Explicit parentheses: & binds tighter than |, so group the king mask and occupancy filter together
+            (((BitboardSets[0][PieceHelper.KING] | BitboardSets[1][PieceHelper.KING])
+              & Bits.KingMovement[square]) & occupancy);
     }
 
     // Assume that the FEN is valid for "performance".. although it will NOT be used in the search

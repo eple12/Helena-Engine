@@ -14,10 +14,11 @@ public class Engine
     bool useBook = true;
 
     // Field
-    bool isSearching = false;
+    // volatile: these flags are read/written by both the UCI thread and the search thread without a lock
+    volatile bool isSearching = false;
     // 0 for false, 1 for true. Used with Interlocked to ensure atomic operations.
     private int _searchRequestedFlag = 0;
-    bool cancellationRequested = false;
+    volatile bool cancellationRequested = false;
     SearchRequest lastSearchRequest;
     Action OnSearchComplete;
     Stopwatch searchTimer = new();
@@ -148,7 +149,8 @@ public class Engine
                         alpha = -INF;
                         beta = INF;
 
-                        // Search on this depth will be complete after this iteration
+                        // Window reset to full-width. The next Negamax call will be a full-window search,
+                        // after which the while(true) loop will break via the else branch above.
                     }
                 }
             }
@@ -440,6 +442,16 @@ public class Engine
     public void CancelSearch()
     {
         cancellationRequested = true;
+    }
+
+    // Handles UCI "ucinewgame": clears TT and resets search history
+    // to prevent stale entries from a previous game from polluting the new one.
+    public void NewGame()
+    {
+        tt.Clear();
+        moveOrdering.ClearHistory();
+        moveOrdering.ClearKillerMoves();
+        pv.ClearAll();
     }
 
     // Multithreading
