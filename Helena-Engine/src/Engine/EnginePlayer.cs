@@ -75,6 +75,15 @@ public class EnginePlayer
         return engine.GetBookToggle();
     }
 
+    public void SetDifficulty(DifficultyLevel level)
+    {
+        engine.SetDifficulty(level);
+    }
+    public DifficultyLevel GetDifficulty()
+    {
+        return engine.GetDifficulty();
+    }
+
     public void Cancel()
     {
         engine.CancelSearch();

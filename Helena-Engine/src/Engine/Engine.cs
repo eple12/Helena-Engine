@@ -26,6 +26,10 @@ public class Engine
     MoveOrdering moveOrdering;
     SEE see;
 
+    // Difficulty
+    DifficultyLevel currentDifficulty = DifficultyLevel.MAXIMUM;
+    Random rng = new();
+
     // Search vars
     Move bestMove;
     Move bestMoveLastIteration;
@@ -188,7 +192,11 @@ public class Engine
 
         searchTimer.Stop();
 
-        System.Console.WriteLine($"bestmove {bestMove.Notation}");
+        Move finalMove = (currentDifficulty == DifficultyLevel.MAXIMUM)
+            ? bestMove
+            : ApplyDifficulty(bestMove);
+
+        System.Console.WriteLine($"bestmove {finalMove.Notation}");
     }
 
     int Negamax(int depth, int plyFromRoot, int alpha, int beta)
@@ -419,6 +427,94 @@ public class Engine
     {
         return Book.Book.GetRandomMove(board.State.Key);
     }
+
+    // ── Difficulty ────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Probabilistic move selection based on the current difficulty level.
+    ///
+    /// Algorithm:
+    ///   1. Score every legal root move with a quiescence search.
+    ///   2. Sort moves best-to-worst by that score.
+    ///   3. Restrict candidates to the top (MaxN + 1) moves.
+    ///   4. Assign softmax weights: weight[i] = exp(−diff[i] / Temperature),
+    ///      where diff[i] = topScore − score[i] ≥ 0.
+    ///   5. Sample one candidate according to those weights.
+    ///
+    /// Moves beyond rank MaxN always have weight 0, preventing truly catastrophic
+    /// blunders even at the lowest difficulty.
+    /// Large eval gaps naturally suppress bad candidates without special-casing.
+    /// </summary>
+    Move ApplyDifficulty(Move mainSearchBestMove)
+    {
+        DifficultyConfig config = DifficultySettings.Get(currentDifficulty);
+        int maxN = config.MaxN;
+        double temp = config.Temperature;
+
+        // Collect all legal moves from the current root position
+        MoveList legalMoves = board.MoveGenerator.GenerateMoves();
+        int n = legalMoves.Length;
+
+        if (n <= 1) return mainSearchBestMove;
+
+        // Score every legal move with a quiescence search
+        var scored = new (Move move, int score)[n];
+        for (int i = 0; i < n; i++)
+        {
+            board.MakeMove(legalMoves[i]);
+            int qs = -QuiescenceSearch(-INF, INF);
+            board.UnmakeMove(legalMoves[i]);
+            scored[i] = (legalMoves[i], qs);
+        }
+
+        // Sort descending by score (best move first)
+        Array.Sort(scored, (a, b) => b.score.CompareTo(a.score));
+
+        // Only the top (maxN + 1) moves are eligible
+        int numCandidates = Math.Min(maxN + 1, n);
+        int topScore = scored[0].score;
+
+        // Softmax weights
+        double[] weights = new double[numCandidates];
+        double totalWeight = 0.0;
+        for (int i = 0; i < numCandidates; i++)
+        {
+            double diff = Math.Max(0.0, (double)(topScore - scored[i].score));
+            weights[i] = Math.Exp(-diff / temp);
+            totalWeight += weights[i];
+        }
+
+        // Weighted random selection
+        double r = rng.NextDouble() * totalWeight;
+        double cumulative = 0.0;
+        for (int i = 0; i < numCandidates; i++)
+        {
+            cumulative += weights[i];
+            if (r <= cumulative)
+            {
+                if (i > 0)
+                {
+                    System.Console.WriteLine(
+                        $"info string [{config.Name}] rank {i + 1} selected: {scored[i].move.Notation} " +
+                        $"(eval diff: {topScore - scored[i].score} cp)");
+                }
+                return scored[i].move;
+            }
+        }
+
+        // Fallback – should not be reached in practice
+        return scored[0].move;
+    }
+
+    public void SetDifficulty(DifficultyLevel level)
+    {
+        currentDifficulty = level;
+        DifficultyConfig config = DifficultySettings.Get(level);
+        System.Console.WriteLine(
+            $"info string Difficulty set to [{(int)level}] {config.Name} – {config.Description}");
+    }
+
+    public DifficultyLevel GetDifficulty() => currentDifficulty;
 
     public void ToggleBook()
     {

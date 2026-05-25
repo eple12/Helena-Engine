@@ -50,6 +50,8 @@ public readonly struct ProtocolCommand
     public const string PRIORITY = "priority";
     public const string PRIORITY_SHOW = "show";
     public const string PRIORITY_TOGGLE = "toggle";
+
+    public const string DIFFICULTY = "difficulty";
 }
 
 public static class UCI
@@ -131,6 +133,10 @@ public static class UCI
                 Priority(commandParts[1..]);
                 break;
 
+            case ProtocolCommand.DIFFICULTY:
+                Difficulty(commandParts[1..]);
+                break;
+
             default:
                 break;
         }
@@ -182,6 +188,13 @@ public static class UCI
         System.Console.WriteLine();
         System.Console.WriteLine("priority <toggle | show>");
         System.Console.WriteLine("    - Manage process priority");
+        System.Console.WriteLine();
+        System.Console.WriteLine("difficulty [show | list | set <level> | <level>]");
+        System.Console.WriteLine("    - Manage engine difficulty (default: Maximum)");
+        System.Console.WriteLine("    - <level>: number 0-10, or name such as 'martin', 'club', 'im', 'maximum'");
+        System.Console.WriteLine("    - Examples:  difficulty set martin");
+        System.Console.WriteLine("                 difficulty 4");
+        System.Console.WriteLine("                 difficulty list");
         System.Console.WriteLine();
         System.Console.WriteLine();
 
@@ -413,6 +426,96 @@ public static class UCI
             Process currentProcess = Process.GetCurrentProcess();
             System.Console.WriteLine($"Current process priority: {currentProcess.PriorityClass.ToString()}");
         }
+    }
+
+    // ── Difficulty ────────────────────────────────────────────────────────────
+
+    static void Difficulty(string[] subcommands)
+    {
+        if (subcommands.Length == 0)
+        {
+            ShowDifficulty();
+            return;
+        }
+
+        string first = subcommands[0].ToLower();
+
+        if (first == "show")
+        {
+            ShowDifficulty();
+            return;
+        }
+
+        if (first == "list")
+        {
+            ListDifficulties();
+            return;
+        }
+
+        // Accept:  "difficulty set <level>"  OR  "difficulty <level>"
+        string levelToken = (first == "set" && subcommands.Length > 1)
+            ? subcommands[1]
+            : subcommands[0];
+
+        if (TryParseDifficulty(levelToken, out DifficultyLevel level))
+        {
+            engine.SetDifficulty(level);
+            ShowDifficulty();
+        }
+        else
+        {
+            System.Console.WriteLine(
+                $"Unknown difficulty: '{levelToken}'. " +
+                "Use 'difficulty list' to see available levels.");
+        }
+    }
+
+    static void ShowDifficulty()
+    {
+        DifficultyLevel level = engine.GetDifficulty();
+        DifficultyConfig config = DifficultySettings.Get(level);
+        System.Console.WriteLine($"Difficulty: [{(int)level}] {config.Name} – {config.Description}");
+    }
+
+    static void ListDifficulties()
+    {
+        DifficultyLevel current = engine.GetDifficulty();
+        System.Console.WriteLine("Difficulty levels:");
+        System.Console.WriteLine();
+        foreach (DifficultyConfig cfg in DifficultySettings.Configs)
+        {
+            string marker = cfg.Level == current ? "►" : " ";
+            string maxNStr = cfg.MaxN == 0 ? "always best" : $"top {cfg.MaxN + 1} candidates";
+            System.Console.WriteLine(
+                $"  {marker} [{(int)cfg.Level,2}] {cfg.Name,-20}  {cfg.Description,-46}  ({maxNStr})");
+        }
+        System.Console.WriteLine();
+    }
+
+    static bool TryParseDifficulty(string token, out DifficultyLevel level)
+    {
+        // Numeric index  (e.g. "0", "4", "10")
+        if (int.TryParse(token, out int idx)
+            && idx >= 0
+            && idx < DifficultySettings.Configs.Length)
+        {
+            level = (DifficultyLevel)idx;
+            return true;
+        }
+
+        // Name or enum key (case-insensitive)
+        foreach (DifficultyConfig cfg in DifficultySettings.Configs)
+        {
+            if (string.Equals(cfg.Name, token, StringComparison.OrdinalIgnoreCase)
+                || string.Equals(cfg.Level.ToString(), token, StringComparison.OrdinalIgnoreCase))
+            {
+                level = cfg.Level;
+                return true;
+            }
+        }
+
+        level = DifficultyLevel.MAXIMUM;
+        return false;
     }
 
     static void Test()
