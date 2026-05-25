@@ -30,6 +30,9 @@ public class Engine
     DifficultyLevel currentDifficulty = DifficultyLevel.MAXIMUM;
     Random rng = new();
 
+    // Play-mode callback: fired with the chosen move just before "bestmove" is printed
+    public Action<Move>? OnBestMoveFound;
+
     // Search vars
     Move bestMove;
     Move bestMoveLastIteration;
@@ -196,6 +199,7 @@ public class Engine
             ? bestMove
             : ApplyDifficulty(bestMove);
 
+        OnBestMoveFound?.Invoke(finalMove);
         System.Console.WriteLine($"bestmove {finalMove.Notation}");
     }
 

@@ -84,6 +84,18 @@ public class EnginePlayer
         return engine.GetDifficulty();
     }
 
+    public bool IsSearching() => engine.IsSearching();
+
+    /// <summary>
+    /// Subscribe to receive the chosen Move the instant the engine decides it,
+    /// before "bestmove" is printed. Used by PlayMode to apply the engine's reply.
+    /// Pass null to unsubscribe.
+    /// </summary>
+    public void SetBestMoveCallback(Action<H.Core.Move>? callback)
+    {
+        engine.OnBestMoveFound = callback;
+    }
+
     public void Cancel()
     {
         engine.CancelSearch();

@@ -52,6 +52,8 @@ public readonly struct ProtocolCommand
     public const string PRIORITY_TOGGLE = "toggle";
 
     public const string DIFFICULTY = "difficulty";
+
+    public const string PLAY = "play";
 }
 
 public static class UCI
@@ -137,6 +139,11 @@ public static class UCI
                 Difficulty(commandParts[1..]);
                 break;
 
+            case ProtocolCommand.PLAY:
+                bool wantsQuit = PlayCmd(commandParts[1..]);
+                if (wantsQuit) return ProtocolResult.QUIT;
+                break;
+
             default:
                 break;
         }
@@ -146,66 +153,97 @@ public static class UCI
 
     static void HelpMessage()
     {
-        System.Console.WriteLine("Helena-Engine UCI+ Commands");
-        System.Console.WriteLine();
-        System.Console.WriteLine("UCI+ Commands:");
-        System.Console.WriteLine();
-        System.Console.WriteLine("help");
-        System.Console.WriteLine("    - Print command guides");
-        System.Console.WriteLine();
-        System.Console.WriteLine("quit");
-        System.Console.WriteLine("    - Quit immediately");
-        System.Console.WriteLine();
-        System.Console.WriteLine("uci");
-        System.Console.WriteLine("    - Check the UCI protocol");
-        System.Console.WriteLine();
-        System.Console.WriteLine("isready");
-        System.Console.WriteLine("    - Check if the engine is ready for a search");
-        System.Console.WriteLine();
-        System.Console.WriteLine("d");
-        System.Console.WriteLine("    - Print the current board state");
-        System.Console.WriteLine();
-        System.Console.WriteLine("position <fen FEN | startpos> [moves move1 move2 ...]");
-        System.Console.WriteLine("    - Load a position from FEN string");
-        System.Console.WriteLine();
-        System.Console.WriteLine("movegen");
-        System.Console.WriteLine("    - Perform move generation and print out the legal moves");
-        System.Console.WriteLine();
-        System.Console.WriteLine("go <[depth] [infinite] [movetime] [wtime] [btime] [winc] [binc] | perft <depth> | timedperft <depth> | routineperft>");
-        System.Console.WriteLine("    - Perform engine search");
-        System.Console.WriteLine();
-        System.Console.WriteLine("stop");
-        System.Console.WriteLine("    - Stop the search immediately");
-        System.Console.WriteLine();
-        System.Console.WriteLine("move <move1 move2 ...>");
-        System.Console.WriteLine("    - Make the moves directly");
-        System.Console.WriteLine();
-        System.Console.WriteLine("eval");
-        System.Console.WriteLine("    - Perform static evaluation and print out the eval");
-        System.Console.WriteLine();
-        System.Console.WriteLine("book <toggle | show | parse>");
-        System.Console.WriteLine("    - Manage opening book");
-        System.Console.WriteLine();
-        System.Console.WriteLine("priority <toggle | show>");
-        System.Console.WriteLine("    - Manage process priority");
-        System.Console.WriteLine();
-        System.Console.WriteLine("difficulty [show | list | set <level> | <level>]");
-        System.Console.WriteLine("    - Manage engine difficulty (default: Maximum)");
-        System.Console.WriteLine("    - <level>: number 0-10, or name such as 'martin', 'club', 'im', 'maximum'");
-        System.Console.WriteLine("    - Examples:  difficulty set martin");
-        System.Console.WriteLine("                 difficulty 4");
-        System.Console.WriteLine("                 difficulty list");
-        System.Console.WriteLine();
-        System.Console.WriteLine();
+        const string HR  = "  ─────────────────────────────────────────────────────────────────";
+        const string HR2 = "  ═════════════════════════════════════════════════════════════════";
 
-        // Debugging
-        System.Console.WriteLine("Debugging Commands:");
+        void H(string title)
+        {
+            System.Console.WriteLine();
+            System.Console.WriteLine(HR);
+            System.Console.WriteLine($"  {title}");
+            System.Console.WriteLine(HR);
+        }
+        void C(string cmd, string desc)
+        {
+            System.Console.WriteLine($"  {cmd,-52}  {desc}");
+        }
+        void E(string example)
+        {
+            System.Console.WriteLine($"      ex)  {example}");
+        }
+        void Br() => System.Console.WriteLine();
+
         System.Console.WriteLine();
-        System.Console.WriteLine("pause");
-        System.Console.WriteLine("    - Pause the program immediately in Debug Mode");
+        System.Console.WriteLine(HR2);
+        System.Console.WriteLine("    Helena-Engine  —  Command Reference");
+        System.Console.WriteLine(HR2);
+
+        // ── Play ──────────────────────────────────────────────────────────────
+        H("PLAY  (interactive game against the engine)");
+        C("play [white|black]",                          "Start a game (default: you play White)");
+        C("  [movetime <ms>]",                           "Engine think time per move (default: 3000 ms)");
+        C("  [depth <n>]",                               "Engine max search depth (default: unlimited)");
+        E("play black movetime 5000");
+        Br();
+        System.Console.WriteLine("  In-game commands:");
+        C("  <move>  e2e4 / e4 / Nf3 / O-O / O-O-O",   "Enter your move (UCI or SAN)");
+        C("  hint",                                       "Ask the engine for a suggestion");
+        C("  undo",                                       "Take back your last move + the engine's reply");
+        C("  resign",                                     "Forfeit the current game");
+        C("  quit",                                       "Exit play mode (return to UCI prompt)");
+
+        // ── Board & Position ──────────────────────────────────────────────────
+        H("BOARD & POSITION");
+        C("d",                                            "Display the current board");
+        C("position startpos [moves m1 m2 …]",           "Load starting position, optionally with moves");
+        C("position fen <FEN> [moves m1 m2 …]",          "Load a FEN position");
+        C("move <m1> [m2 …]",                            "Make moves on the board directly");
+        C("movegen",                                      "List all legal moves in the current position");
+        C("eval",                                         "Static evaluation of the current position");
+
+        // ── Search ────────────────────────────────────────────────────────────
+        H("SEARCH");
+        C("go [depth <n>]",                              "Search to a fixed depth");
+        C("go movetime <ms>",                            "Search for a fixed time");
+        C("go wtime <ms> btime <ms> [winc <ms> binc <ms>]", "Search with clock times");
+        C("go infinite",                                  "Search indefinitely (stop with 'stop')");
+        C("go perft <depth>",                            "Perft node-count test");
+        C("go timedperft <depth>",                       "Timed perft test");
+        C("go routineperft",                             "Run the full perft test suite");
+        C("stop",                                         "Stop a running search immediately");
+
+        // ── Settings ──────────────────────────────────────────────────────────
+        H("SETTINGS");
+        C("difficulty [show | list]",                    "Show current difficulty / list all levels");
+        C("difficulty <name | 0-10>",                    "Set difficulty by name or number");
+        C("difficulty set <name | 0-10>",                "Set difficulty (explicit form)");
+        E("difficulty martin   |   difficulty 4   |   difficulty list");
+        Br();
+        C("book toggle",                                  "Enable / disable the opening book");
+        C("book show",                                    "Show book moves for the current position");
+        C("book parse",                                   "Re-parse the book data file");
+        Br();
+        C("priority toggle",                             "Toggle process priority (Normal ↔ High)");
+        C("priority show",                               "Show current process priority");
+
+        // ── UCI protocol ──────────────────────────────────────────────────────
+        H("UCI PROTOCOL");
+        C("uci",                                          "Identify engine and list UCI options");
+        C("isready",                                      "Confirm the engine is ready");
+        C("ucinewgame",                                   "Reset internal state for a new game");
+
+        // ── General ───────────────────────────────────────────────────────────
+        H("GENERAL");
+        C("help",                                         "Show this help");
+        C("quit",                                         "Exit the engine");
+
+        // ── Debug ─────────────────────────────────────────────────────────────
+        H("DEBUG");
+        C("pause",                                        "Break into debugger (Debug build only)");
+        C("test",                                         "Run the current internal test function");
+
         System.Console.WriteLine();
-        System.Console.WriteLine("test");
-        System.Console.WriteLine("    - Perform the current Test function");
+        System.Console.WriteLine(HR2);
         System.Console.WriteLine();
     }
 
@@ -516,6 +554,42 @@ public static class UCI
 
         level = DifficultyLevel.MAXIMUM;
         return false;
+    }
+
+    // ── Play ─────────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Parses "play [white|black] [movetime &lt;ms&gt;] [depth &lt;n&gt;]" and launches PlayMode.
+    /// Returns true if the user typed 'quit' inside play mode (so the main loop exits).
+    /// </summary>
+    static bool PlayCmd(string[] args)
+    {
+        bool  playerIsWhite = true;
+        int   moveTimeMs    = 3000;
+        int   depth         = Constants.MAX_DEPTH;
+
+        for (int i = 0; i < args.Length; i++)
+        {
+            switch (args[i].ToLower())
+            {
+                case "white":
+                    playerIsWhite = true;
+                    break;
+                case "black":
+                    playerIsWhite = false;
+                    break;
+                case "movetime":
+                    if (i + 1 < args.Length && int.TryParse(args[++i], out int mt))
+                        moveTimeMs = Math.Max(100, mt);
+                    break;
+                case "depth":
+                    if (i + 1 < args.Length && int.TryParse(args[++i], out int d))
+                        depth = Math.Clamp(d, 1, Constants.MAX_DEPTH);
+                    break;
+            }
+        }
+
+        return PlayMode.Run(playerIsWhite, moveTimeMs, depth);
     }
 
     static void Test()
