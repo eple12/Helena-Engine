@@ -61,6 +61,8 @@ public class Engine
             Move bookMove = TryGetBookMove();
             if (bookMove != Move.NullMove)
             {
+                // Fire the callback so PlayMode (or any other subscriber) is unblocked.
+                OnBestMoveFound?.Invoke(bookMove);
                 System.Console.WriteLine($"bestmove {bookMove.Notation}");
                 return;
             }
