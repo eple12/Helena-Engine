@@ -141,7 +141,7 @@ public static class UCI
 
             case ProtocolCommand.PLAY:
                 bool wantsQuit = PlayCmd(commandParts[1..]);
-                if (wantsQuit) return ProtocolResult.QUIT;
+                // if (wantsQuit) return ProtocolResult.QUIT;
                 break;
 
             default:
@@ -154,7 +154,7 @@ public static class UCI
     static void HelpMessage()
     {
         const string HR  = "  ────────────────────────────────────────────────────────────────────────────────────────────────────";
-        const string HR2 = "  ════════════════════════════════════════════════════════════════════════════════════════════════════";
+        const string HR2 = "  ====================================================================================================";
 
         void H(string title)
         {
@@ -175,7 +175,7 @@ public static class UCI
 
         System.Console.WriteLine();
         System.Console.WriteLine(HR2);
-        System.Console.WriteLine("    Helena-Engine  —  Command Reference");
+        System.Console.WriteLine("    Helena-Engine  -  Command Reference");
         System.Console.WriteLine(HR2);
 
         // ── Play ──────────────────────────────────────────────────────────────
@@ -512,7 +512,7 @@ public static class UCI
     {
         DifficultyLevel level = engine.GetDifficulty();
         DifficultyConfig config = DifficultySettings.Get(level);
-        System.Console.WriteLine($"Difficulty: [{(int)level}] {config.Name} – {config.Description}");
+        System.Console.WriteLine($"Difficulty: [{(int)level}] {config.Name} - {config.Description}");
     }
 
     static void ListDifficulties()
@@ -522,7 +522,7 @@ public static class UCI
         System.Console.WriteLine();
         foreach (DifficultyConfig cfg in DifficultySettings.Configs)
         {
-            string marker = cfg.Level == current ? "►" : " ";
+            string marker = cfg.Level == current ? ">" : " ";
             string maxNStr = cfg.MaxN == 0 ? "always best" : $"top {cfg.MaxN + 1} candidates";
             System.Console.WriteLine(
                 $"  {marker} [{(int)cfg.Level,2}] {cfg.Name,-20}  {cfg.Description,-46}  ({maxNStr})");

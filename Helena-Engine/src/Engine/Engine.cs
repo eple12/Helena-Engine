@@ -517,7 +517,7 @@ public class Engine
         currentDifficulty = level;
         DifficultyConfig config = DifficultySettings.Get(level);
         System.Console.WriteLine(
-            $"info string Difficulty set to [{(int)level}] {config.Name} – {config.Description}");
+            $"info string Difficulty set to [{(int)level}] {config.Name} - {config.Description}");
     }
 
     public DifficultyLevel GetDifficulty() => currentDifficulty;

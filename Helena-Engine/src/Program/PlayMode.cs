@@ -72,7 +72,7 @@ public static class PlayMode
                 if (board.InCheck())
                     PrintResult(board.State.SideToMove ? "Black wins by checkmate!  0-1" : "White wins by checkmate!  1-0");
                 else
-                    PrintResult("Stalemate – Draw  1/2-1/2");
+                    PrintResult("Stalemate - Draw  1/2-1/2");
                 break;
             }
             if (board.IsFiftyMoveDraw())         { PrintResult("Draw by 50-move rule  1/2-1/2");            break; }
@@ -247,12 +247,12 @@ public static class PlayMode
     static void PrintWelcome(bool playerIsWhite, DifficultyConfig diff, int moveTimeMs, int depth)
     {
         Console.WriteLine();
-        Cw("  ╔══════════════════════════════════════╗\n", ConsoleColor.DarkCyan);
-        Cw("  ║       Helena-Engine  Play Mode       ║\n", ConsoleColor.DarkCyan);
-        Cw("  ╚══════════════════════════════════════╝\n", ConsoleColor.DarkCyan);
+        Cw("  ┌──────────────────────────────────────┐\n", ConsoleColor.DarkCyan);
+        Cw("  |       Helena-Engine  Play Mode       |\n", ConsoleColor.DarkCyan);
+        Cw("  └──────────────────────────────────────┘\n", ConsoleColor.DarkCyan);
         Console.WriteLine();
         Console.WriteLine($"  You play  : {(playerIsWhite ? "White (P N B R Q K)" : "Black (p n b r q k)")}");
-        Console.WriteLine($"  Difficulty: [{(int)diff.Level}] {diff.Name}  –  {diff.Description}");
+        Console.WriteLine($"  Difficulty: [{(int)diff.Level}] {diff.Name}  -  {diff.Description}");
         Console.WriteLine($"  Think time: {moveTimeMs / 1000.0:F1} s/move" +
                           $"  |  Max depth: {(depth >= Constants.MAX_DEPTH ? "unlimited" : depth.ToString())}");
         Console.WriteLine();
@@ -262,7 +262,7 @@ public static class PlayMode
     static void PrintTurnHeader(Board board, bool playerIsWhite)
     {
         string side = playerIsWhite ? "White (P N B R Q K)" : "Black (p n b r q k)";
-        Console.Write($"\n  Your turn – {side}");
+        Console.Write($"\n  Your turn - {side}");
         if (board.InCheck()) { Console.Write("  "); Cw("CHECK!", ConsoleColor.Red); }
         Console.WriteLine();
     }
@@ -293,7 +293,7 @@ public static class PlayMode
     static void PrintResult(string message)
     {
         Console.WriteLine();
-        Cw($"  ══ {message} ══\n\n", ConsoleColor.Yellow);
+        Cw($"  == {message} ==\n\n", ConsoleColor.Yellow);
     }
 
     // ── Hint ──────────────────────────────────────────────────────────────────
